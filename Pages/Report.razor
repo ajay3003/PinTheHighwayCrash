@@ -1,4 +1,5 @@
 @page "/report"
+@using System.Text.RegularExpressions
 @using Microsoft.Extensions.Options
 @using PinTheHighwayCrash.Models
 @using PinTheHighwayCrash.Services
@@ -29,6 +30,26 @@ else
             </div>
             <button class="btn btn-outline-primary mt-3" @onclick="Retry">Retry</button>
             <a class="btn btn-link mt-3" href="health">Run Health Check</a>
+        </div>
+    }
+
+    @* Fallback input ONLY when GPS fix is unavailable *@
+    @if (!_hasRealFix)
+    {
+        <div class="container-card mb-3">
+            <label for="pasteBox" class="form-label mb-1">Paste a Google Maps link, Plus Code, or coordinates</label>
+            <div class="d-flex gap-2 flex-wrap">
+                <input id="pasteBox"
+                       class="form-control"
+                       style="max-width: 520px"
+                       @bind="_manualInput"
+                       placeholder='e.g. 19.0760, 72.8777  •  7JW5+6V Mumbai  •  https://maps.google.com/?q=19.0760,72.8777' />
+                <button class="btn btn-outline-primary" @onclick="UsePasted">Use location</button>
+            </div>
+            @if (!string.IsNullOrWhiteSpace(_manualMsg))
+            {
+                <div class="small mt-2 text-muted">@_manualMsg</div>
+            }
         </div>
     }
 
@@ -126,6 +147,10 @@ else
     private string? _note;
     private string? _submitMsg;
 
+    // Fallback UI state (shown only when !_hasRealFix)
+    private string? _manualInput;
+    private string? _manualMsg;
+
     private bool _onRoadCheckEnabled;
     private bool? _onRoad;
     private bool _verifyingRoad;
@@ -143,7 +168,7 @@ else
 
     private DotNetObjectReference<Report>? _selfRef;
 
-    // ✅ Fixed: not actually async — no awaits needed
+    // Not actually awaiting anything — return CompletedTask to avoid compiler warning
     protected override Task OnInitializedAsync()
     {
         var e = EmergencyOpts.Value;
@@ -160,7 +185,7 @@ else
         _maxAllowedMeters = geo.MaxDistanceMeters;
         _onRoadCheckEnabled = geo.OnRoadVerification.Enabled;
 
-        return Task.CompletedTask; // prevents warning
+        return Task.CompletedTask;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -179,6 +204,7 @@ else
             _meLat = FallbackLat; _meLng = FallbackLng; _accuracy = 9999;
             _pinLat = _meLat; _pinLng = _meLng;
             await EnsureMapInitialized(_meLat, _meLng);
+            _manualMsg = "GPS blocked/unavailable — paste a link, Plus Code, or coordinates to set the pin.";
         }
         else
         {
@@ -247,20 +273,89 @@ else
         }
     }
 
-    private string BuildReportText()
+    // --------- Fallback: “Use pasted” (shown only when !_hasRealFix) ----------
+    private async Task UsePasted()
     {
-        var maps = $"https://maps.google.com/?q={_pinLat:F6},{_pinLng:F6}";
-        var note = string.IsNullOrWhiteSpace(_note) ? "" : $"Note: {_note}\n";
-        var road = _onRoad == true ? "On a road (verified)" :
-                    _onRoad == false ? "Off-road" : "Road status unknown";
-        return $"EMERGENCY: Highway accident reported.\n" +
-               $"Pinned Location: {_pinLat:F6}, {_pinLng:F6}\n" +
-               $"Reporter GPS: {_meLat:F6}, {_meLng:F6} (±{_accuracy} m)\n" +
-               $"{note}" +
-               $"Road Status: {road}\n" +
-               $"Map: {maps}\n" +
-               $"Time (UTC): {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}";
+        _manualMsg = null;
+        var raw = _manualInput?.Trim();
+        if (string.IsNullOrWhiteSpace(raw))
+        {
+            _manualMsg = "Paste a link, Plus Code, or coordinates.";
+            return;
+        }
+
+        // 1) Strict lat,lng (handles "12.34,56.78" or "12.34 56.78")
+        if (TryParseLatLng(raw, out var lat, out var lng))
+        {
+            await ApplyManualLocation(lat, lng, "Using pasted coordinates.");
+            return;
+        }
+
+        // 2) Extract from common Google Maps links (?q=lat,lng or /@lat,lng,zoomz)
+        if (TryExtractLatLngFromCommonMapsLinks(raw, out lat, out lng))
+        {
+            await ApplyManualLocation(lat, lng, "Using coordinates from link.");
+            return;
+        }
+
+        // 3) Fallback to forward geocoding (Plus Codes / place text / other links)
+        var hit = await Verify.ForwardGeocodeAsync(raw);
+        if (hit is not null)
+        {
+            await ApplyManualLocation(hit.Lat, hit.Lng, hit.Label is null ? "Location resolved." : $"Location: {hit.Label}");
+            return;
+        }
+
+        _manualMsg = "Could not read a location from what you pasted.";
     }
+
+    private static bool TryParseLatLng(string raw, out double lat, out double lng)
+    {
+        lat = lng = 0;
+        var m = Regex.Match(raw, @"^\s*([+-]?\d+(?:\.\d+)?)\s*[, ]\s*([+-]?\d+(?:\.\d+)?)\s*$");
+        if (!m.Success) return false;
+        if (!double.TryParse(m.Groups[1].Value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out lat)) return false;
+        if (!double.TryParse(m.Groups[2].Value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out lng)) return false;
+        return lat is >= -90 and <= 90 && lng is >= -180 and <= 180;
+    }
+
+    private static bool TryExtractLatLngFromCommonMapsLinks(string raw, out double lat, out double lng)
+    {
+        lat = lng = 0;
+
+        // Pattern A: ...?q=lat,lng
+        var q = Regex.Match(raw, @"[?&]q=([+-]?\d+(?:\.\d+)?),\s*([+-]?\d+(?:\.\d+)?)", RegexOptions.IgnoreCase);
+        if (q.Success &&
+            double.TryParse(q.Groups[1].Value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out lat) &&
+            double.TryParse(q.Groups[2].Value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out lng))
+        {
+            return lat is >= -90 and <= 90 && lng is >= -180 and <= 180;
+        }
+
+        // Pattern B: .../@lat,lng,zoomz
+        var at = Regex.Match(raw, @"/@([+-]?\d+(?:\.\d+)?),\s*([+-]?\d+(?:\.\d+)?),\d+(?:\.\d+)?z", RegexOptions.IgnoreCase);
+        if (at.Success &&
+            double.TryParse(at.Groups[1].Value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out lat) &&
+            double.TryParse(at.Groups[2].Value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out lng))
+        {
+            return lat is >= -90 and <= 90 && lng is >= -180 and <= 180;
+        }
+
+        return false;
+    }
+
+    private async Task ApplyManualLocation(double lat, double lng, string msg)
+    {
+        _pinLat = lat; _pinLng = lng;
+        await JS.InvokeVoidAsync("mapInterop.setView", _pinLat, _pinLng);
+        UpdateDistance();
+        if (_onRoadCheckEnabled)
+            await VerifyIfOnRoad();
+        _manualMsg = msg;
+        StateHasChanged();
+    }
+
+    // -------------------------------------------------------------------------
 
     private async Task CallEmergency()
     {
@@ -331,7 +426,7 @@ else
         var body = Uri.EscapeDataString(BuildReportText());
         var url = $"mailto:{_email}?subject={subject}&body={body}";
         await JS.InvokeVoidAsync("shareInterop.openUrl", url);
-        _submitMsg = $"Opened email composer to {_email}.";
+        _submitMsg = $"Opened email composer to @_email.";
     }
 
     private async Task CopyReport()
@@ -376,6 +471,21 @@ else
     }
 
     private async Task Retry() => await FirstLoad();
+
+    private string BuildReportText()
+    {
+        var maps = $"https://maps.google.com/?q={_pinLat:F6},{_pinLng:F6}";
+        var note = string.IsNullOrWhiteSpace(_note) ? "" : $"Note: {_note}\n";
+        var road = _onRoad == true ? "On a road (verified)" :
+                    _onRoad == false ? "Off-road" : "Road status unknown";
+        return $"EMERGENCY: Highway accident reported.\n" +
+               $"Pinned Location: {_pinLat:F6}, {_pinLng:F6}\n" +
+               $"Reporter GPS: {_meLat:F6}, {_meLng:F6} (±{_accuracy} m)\n" +
+               $"{note}" +
+               $"Road Status: {road}\n" +
+               $"Map: {maps}\n" +
+               $"Time (UTC): {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}";
+    }
 
     public void Dispose()
     {

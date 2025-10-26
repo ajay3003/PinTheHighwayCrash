@@ -1,8 +1,85 @@
-<nav class="nav flex-column p-3">
-    <div class="nav-item mb-2">
-        <a class="nav-link" href="/">Home</a>
-    </div>
-    <div class="nav-item mb-2">
-        <a class="nav-link" href="report">Report Crash</a>
+﻿<nav class="d-flex flex-column flex-shrink-0 p-3 bg-dark text-white min-vh-100 shadow-sm" style="width: 240px;">
+    <a href="/" class="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-white text-decoration-none">
+        <span class="fs-4 fw-semibold">
+            🚨 PinTheHighwayCrash
+        </span>
+    </a>
+    <hr class="border-secondary" />
+
+    <ul class="nav nav-pills flex-column mb-auto">
+        <li class="nav-item mb-1">
+            <NavLink class="nav-link text-white d-flex align-items-center gap-2"
+                     href="/" Match="NavLinkMatch.All">
+                <i class="bi bi-house-fill"></i> Home
+            </NavLink>
+        </li>
+
+        <li class="nav-item mb-1">
+            <NavLink class="nav-link text-white d-flex align-items-center gap-2"
+                     href="report">
+                <i class="bi bi-geo-alt-fill"></i> Report Crash
+            </NavLink>
+        </li>
+
+        <li class="nav-item mb-1">
+            <NavLink class="nav-link text-white d-flex align-items-center gap-2"
+                     href="health">
+                <i class="bi bi-heart-pulse-fill"></i> Health Check
+            </NavLink>
+        </li>
+    </ul>
+
+    <hr class="border-secondary" />
+    <div class="text-muted small">
+        <i class="bi bi-info-circle"></i> v1.0 beta
+        <div class="mt-1">
+            <a href="https://github.com/ajay3003/PinTheHighwayCrash"
+               target="_blank" class="link-light text-decoration-none">
+                <i class="bi bi-github"></i> GitHub
+            </a>
+        </div>
     </div>
 </nav>
+
+<style>
+    .nav-link {
+        border-radius: 0.375rem;
+        transition: all 0.2s ease-in-out;
+    }
+
+        .nav-link.active {
+            background-color: #0d6efd !important;
+            font-weight: 600;
+        }
+
+        .nav-link:hover:not(.active) {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            transform: translateX(4px);
+        }
+
+    @@media (max-width: 992px) {
+        nav .d-flex
+
+    {
+        width: 100%;
+        min-height: auto;
+        flex-direction: row !important;
+        align-items: center;
+        justify-content: space-around;
+    }
+
+    nav ul {
+        flex-direction: row !important;
+        margin-bottom: 0 !important;
+    }
+
+    nav .nav-item {
+        margin-bottom: 0 !important;
+    }
+
+    nav .nav-link {
+        padding: 0.5rem;
+    }
+
+    }</style>

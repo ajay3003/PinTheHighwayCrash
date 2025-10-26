@@ -1,0 +1,4 @@
+wwwroot\css\app.css
+wwwroot\index.html
+wwwroot\js\mapInterop.js
+wwwroot\js\shareInterop.js

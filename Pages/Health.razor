@@ -1,0 +1,105 @@
+﻿@page "/health"
+@inject PinTheHighwayCrash.Services.HealthService HealthSvc
+
+<h1>Environment Health Check</h1>
+
+@if (_loading)
+{
+    <div class="d-flex align-items-center gap-2">
+        <div class="spinner-border spinner-border-sm text-primary" role="status" aria-hidden="true"></div>
+        <span>Running checks…</span>
+    </div>
+}
+else if (_report is null)
+{
+    <div class="alert alert-danger" role="alert">
+        Health check failed to start. Try again.
+    </div>
+    <button class="btn btn-outline-primary" @onclick="Run">Re-run checks</button>
+}
+else
+{
+    <div class="mb-3">
+        Overall status:
+        @switch (_report.Overall)
+        {
+            case PinTheHighwayCrash.Services.HealthService.HealthStatus.Pass:
+                <span class="badge bg-success">PASS</span>
+                break;
+            case PinTheHighwayCrash.Services.HealthService.HealthStatus.Warn:
+                <span class="badge bg-warning text-dark">WARN</span>
+                break;
+            case PinTheHighwayCrash.Services.HealthService.HealthStatus.Fail:
+                <span class="badge bg-danger">FAIL</span>
+                break;
+            case PinTheHighwayCrash.Services.HealthService.HealthStatus.Info:
+                <span class="badge bg-info text-dark">INFO</span>
+                break;
+            default:
+                <span class="badge bg-secondary">UNKNOWN</span>
+                break;
+        }
+        @if (!string.IsNullOrWhiteSpace(_report.Source))
+        {
+            <span class="ms-2 small text-muted">(source: @_report.Source)</span>
+        }
+    </div>
+
+    <div class="list-group shadow-sm">
+        @foreach (var item in _report.Items)
+        {
+            <div class="list-group-item">
+                <div class="d-flex justify-content-between align-items-center">
+                    <strong>@item.Name</strong>
+                    @switch (item.Status)
+                    {
+                        case PinTheHighwayCrash.Services.HealthService.HealthStatus.Pass:
+                            <span class="badge bg-success">PASS</span>
+                            break;
+                        case PinTheHighwayCrash.Services.HealthService.HealthStatus.Warn:
+                            <span class="badge bg-warning text-dark">WARN</span>
+                            break;
+                        case PinTheHighwayCrash.Services.HealthService.HealthStatus.Fail:
+                            <span class="badge bg-danger">FAIL</span>
+                            break;
+                        case PinTheHighwayCrash.Services.HealthService.HealthStatus.Info:
+                            <span class="badge bg-info text-dark">INFO</span>
+                            break;
+                        default:
+                            <span class="badge bg-secondary">UNKNOWN</span>
+                            break;
+                    }
+                </div>
+
+                @if (!string.IsNullOrWhiteSpace(item.Detail))
+                {
+                    <div class="small text-muted mt-1">@item.Detail</div>
+                }
+                @if (!string.IsNullOrWhiteSpace(item.Fix))
+                {
+                    <div class="mt-1"><em>Fix:</em> @item.Fix</div>
+                }
+            </div>
+        }
+    </div>
+
+    <div class="d-flex gap-2 mt-3">
+        <button class="btn btn-outline-primary" @onclick="Run">Re-run checks</button>
+        <a class="btn btn-outline-secondary" href="report">Go to Report</a>
+    </div>
+}
+
+@code {
+    private bool _loading = true;
+    private PinTheHighwayCrash.Services.HealthService.HealthReport? _report;
+
+    protected override async Task OnInitializedAsync() => await Run();
+
+    private async Task Run()
+    {
+        _loading = true;
+        _report = await HealthSvc.RunSafeAsync(8000);
+        _loading = false;
+        StateHasChanged();
+    }
+}

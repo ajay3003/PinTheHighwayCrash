@@ -397,3 +397,17 @@ MigrationBackup/
 /*.zip
 /WcfTestHarness/SoapLogs/*.xml
 /WcfHarness.LoadTests/Reports/
+# OS cruft
+.DS_Store
+Thumbs.db
+
+# Dotnet local tools cache
+.dotnet-tools/
+
+# Coverage / test outputs
+TestResults/
+coverage/
+*.lcov
+
+# Rider/Resharper caches (already mostly covered)
+.idea/

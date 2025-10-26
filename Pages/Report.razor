@@ -1,22 +1,71 @@
 @page "/report"
+@using PinTheHighwayCrash.Services
 @inject IJSRuntime JS
-@inject PinTheHighwayCrash.Services.GeoService Geo
+@inject GeoService Geo
 
 <h1>Report Highway Crash (India)</h1>
 
 @if (_loading)
 {
-    <p>Getting your location…</p>
+    <div class="d-flex align-items-center gap-2">
+        <div class="spinner-border spinner-border-sm text-primary" role="status" aria-hidden="true"></div>
+        <span>Getting your location…</span>
+    </div>
 }
-else if (_error is not null)
+else if (!string.IsNullOrWhiteSpace(_error))
 {
-    <p class="text-danger">@_error</p>
+    <div class="alert alert-warning" role="alert">
+        <strong>⚠️ Unable to get location:</strong> @_error
+        <div class="mt-1">
+            You can still <b>manually pin</b> the crash location on the map below.
+            For anti-spam, sending is enabled only after a valid GPS fix.
+        </div>
+        <button class="btn btn-outline-primary mt-3" @onclick="Retry">Retry</button>
+        <a class="btn btn-link mt-3" href="health">Run Health Check</a>
+    </div>
+
+    <div class="mb-2">
+        <button class="btn btn-outline-secondary me-2" @onclick="CenterOnMe">Try Center on Me</button>
+        <button class="btn btn-outline-primary" @onclick="SetPinToMyLocationAndView">Set Pin to My Location (if available)</button>
+    </div>
+
+    <div id="map" style="height: 420px; border-radius: 10px; margin-bottom: 1rem;"></div>
+
+    <div class="mb-2">
+        <strong>Your GPS:</strong> @_meLat:F6, @_meLng:F6 (± @_accuracy m) @(!_hasRealFix ? "(no real fix)" : "")
+        <br />
+        <strong>Pinned:</strong> @_pinLat:F6, @_pinLng:F6
+        <br />
+        <strong>Distance:</strong> @(_distanceMeters is null ? "—" : $"{_distanceMeters:F0} m")
+        @if (_distanceMeters is not null && _distanceMeters > _maxAllowedMeters)
+        {
+            <span class="text-danger"> (Too far to submit)</span>
+        }
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">What happened? (optional)</label>
+        <textarea class="form-control" @bind="_note" rows="3"
+                  placeholder="e.g., multi-vehicle crash, fire, blockage, injuries"></textarea>
+    </div>
+
+    <div class="d-flex flex-wrap gap-2">
+        <button class="btn btn-danger" disabled="@(!CanSend)" @onclick="Call112">Call 112</button>
+        <button class="btn btn-warning" disabled="@(!CanSend)" @onclick="SendSms">SMS (prefilled)</button>
+        <button class="btn btn-success" disabled="@(!CanSend)" @onclick="SendWhatsApp">WhatsApp (prefilled)</button>
+        <button class="btn btn-outline-secondary" @onclick="CopyReport">Copy Text</button>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(_submitMsg))
+    {
+        <p class="mt-3">@_submitMsg</p>
+    }
 }
 else
 {
     <div class="mb-2">
         <button class="btn btn-secondary me-2" @onclick="CenterOnMe">Center on Me</button>
-        <button class="btn btn-outline-primary" @onclick="SetPinToMe">Set Pin to My Location</button>
+        <button class="btn btn-outline-primary" @onclick="SetPinToMyLocationAndView">Set Pin to My Location</button>
     </div>
 
     <div id="map" style="height: 420px; border-radius: 10px; margin-bottom: 1rem;"></div>
@@ -53,33 +102,70 @@ else
 @code {
     private bool _loading = true;
     private string? _error;
+    private bool _hasRealFix = false;
+
     private double _meLat, _meLng, _accuracy;
     private double _pinLat, _pinLng;
     private double? _distanceMeters;
-    private const int _maxAllowedMeters = 150; // must be at scene
+    private const int _maxAllowedMeters = 150; // must be on-site
     private string? _note;
     private string? _submitMsg;
+
+    // Fallback center (India) when OS location is blocked
+    private const double FallbackLat = 20.5937;
+    private const double FallbackLng = 78.9629;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender) return;
+        await FirstLoad();
+    }
 
-        var pos = await Geo.GetCurrentPositionAsync();
-        if (pos is null)
+    private async Task FirstLoad()
+    {
+        var result = await Geo.TryGetCurrentPositionAsync(timeoutMs: 10000, highAccuracy: true);
+
+        if (!result.IsSuccess || result.Position is null)
         {
-            _error = "Location permission denied or unavailable.";
+            // Fallback: initialize map centered on India
+            _hasRealFix = false;
+            _error = result.ErrorCode switch
+            {
+                GeoService.GeoErrorCode.PermissionDenied => "Location is blocked for this site or by policy. Allow in the browser if possible.",
+                GeoService.GeoErrorCode.PositionUnavailable => "Position unavailable — Windows Location Services may be disabled by your administrator.",
+                GeoService.GeoErrorCode.Timeout => "Timed out getting a location fix. Move near a window or try again.",
+                GeoService.GeoErrorCode.Unsupported => "This browser does not support the Geolocation API.",
+                _ => $"Location error: {result.ErrorMessage ?? "Unknown error."}"
+            };
+
+            _meLat = FallbackLat; _meLng = FallbackLng; _accuracy = 9999;
+            _pinLat = _meLat; _pinLng = _meLng;
+
+            await EnsureMapInitialized(_meLat, _meLng);
+            UpdateDistance();
             _loading = false;
             StateHasChanged();
             return;
         }
 
-        _meLat = pos.Latitude; _meLng = pos.Longitude; _accuracy = Math.Round(pos.AccuracyMeters);
+        // Success: we have a real fix
+        _hasRealFix = true;
+        _error = null;
+
+        _meLat = result.Position.Latitude;
+        _meLng = result.Position.Longitude;
+        _accuracy = Math.Round(result.Position.AccuracyMeters);
         _pinLat = _meLat; _pinLng = _meLng;
 
-        await JS.InvokeVoidAsync("mapInterop.initMap", "map", _meLat, _meLng, DotNetObjectReference.Create(this));
+        await EnsureMapInitialized(_meLat, _meLng);
         UpdateDistance();
         _loading = false;
         StateHasChanged();
+    }
+
+    private async Task EnsureMapInitialized(double lat, double lng)
+    {
+        await JS.InvokeVoidAsync("mapInterop.initMap", "map", lat, lng, DotNetObjectReference.Create(this));
     }
 
     [JSInvokable]
@@ -91,30 +177,72 @@ else
         return Task.CompletedTask;
     }
 
+    private async Task Retry()
+    {
+        _submitMsg = null;
+        _loading = true;
+        _error = null;
+        StateHasChanged();
+
+        var result = await Geo.TryGetCurrentPositionAsync(timeoutMs: 10000, highAccuracy: true);
+        if (!result.IsSuccess || result.Position is null)
+        {
+            _hasRealFix = false;
+            _error = result.ErrorCode switch
+            {
+                GeoService.GeoErrorCode.PermissionDenied => "Location is blocked for this site or by policy. Allow in the browser if possible.",
+                GeoService.GeoErrorCode.PositionUnavailable => "Position unavailable — Windows Location Services may be disabled by your administrator.",
+                GeoService.GeoErrorCode.Timeout => "Timed out getting a location fix. Move near a window or try again.",
+                GeoService.GeoErrorCode.Unsupported => "This browser does not support the Geolocation API.",
+                _ => $"Location error: {result.ErrorMessage ?? "Unknown error."}"
+            };
+            _loading = false;
+            StateHasChanged();
+            return;
+        }
+
+        _hasRealFix = true;
+        _error = null;
+        _meLat = result.Position.Latitude;
+        _meLng = result.Position.Longitude;
+        _accuracy = Math.Round(result.Position.AccuracyMeters);
+        _pinLat = _meLat; _pinLng = _meLng;
+
+        await JS.InvokeVoidAsync("mapInterop.setView", _meLat, _meLng);
+        UpdateDistance();
+        _loading = false;
+        StateHasChanged();
+    }
+
     private async Task CenterOnMe()
     {
-        var pos = await Geo.GetCurrentPositionAsync();
-        if (pos is null) return;
-        _meLat = pos.Latitude; _meLng = pos.Longitude; _accuracy = Math.Round(pos.AccuracyMeters);
+        var result = await Geo.TryGetCurrentPositionAsync(timeoutMs: 8000, highAccuracy: true);
+        if (!result.IsSuccess || result.Position is null) { _submitMsg = "No GPS fix available."; return; }
+
+        _hasRealFix = true;
+        _meLat = result.Position.Latitude; _meLng = result.Position.Longitude; _accuracy = Math.Round(result.Position.AccuracyMeters);
         await JS.InvokeVoidAsync("mapInterop.setView", _meLat, _meLng);
         UpdateDistance();
     }
 
-    private async Task SetPinToMe()
+    private async Task SetPinToMyLocationAndView()
     {
-        var pos = await Geo.GetCurrentPositionAsync();
-        if (pos is null) return;
-        _pinLat = pos.Latitude; _pinLng = pos.Longitude;
+        var result = await Geo.TryGetCurrentPositionAsync(timeoutMs: 8000, highAccuracy: true);
+        if (!result.IsSuccess || result.Position is null) { _submitMsg = "No GPS fix available."; return; }
+
+        _hasRealFix = true;
+        _pinLat = result.Position.Latitude; _pinLng = result.Position.Longitude;
         await JS.InvokeVoidAsync("mapInterop.setView", _pinLat, _pinLng);
         UpdateDistance();
     }
 
     private void UpdateDistance()
     {
-        _distanceMeters = PinTheHighwayCrash.Services.GeoService.HaversineMeters(_meLat, _meLng, _pinLat, _pinLng);
+        _distanceMeters = GeoService.HaversineMeters(_meLat, _meLng, _pinLat, _pinLng);
     }
 
-    private bool CanSend => _distanceMeters is not null && _distanceMeters <= _maxAllowedMeters;
+    // Must be on-site AND have a real GPS fix
+    private bool CanSend => _hasRealFix && _distanceMeters is not null && _distanceMeters <= _maxAllowedMeters;
 
     private string BuildReportText()
     {
@@ -130,13 +258,13 @@ else
 
     private async Task Call112()
     {
-        if (!CanSend) { _submitMsg = "You must be at the pinned location to call from this screen."; return; }
+        if (!CanSend) { _submitMsg = "You must be at the pinned location (with a valid GPS fix) to call from this screen."; return; }
         await JS.InvokeVoidAsync("shareInterop.openUrl", "tel:112");
     }
 
     private async Task SendSms()
     {
-        if (!CanSend) { _submitMsg = "You must be at the pinned location to send."; return; }
+        if (!CanSend) { _submitMsg = "You must be at the pinned location (with a valid GPS fix) to send."; return; }
         var body = Uri.EscapeDataString(BuildReportText());
         var url = $"sms:?&body={body}";
         await JS.InvokeVoidAsync("shareInterop.openUrl", url);
@@ -145,7 +273,7 @@ else
 
     private async Task SendWhatsApp()
     {
-        if (!CanSend) { _submitMsg = "You must be at the pinned location to send."; return; }
+        if (!CanSend) { _submitMsg = "You must be at the pinned location (with a valid GPS fix) to send."; return; }
         var text = Uri.EscapeDataString(BuildReportText());
         var url = $"https://wa.me/?text={text}";
         await JS.InvokeVoidAsync("shareInterop.openUrl", url);

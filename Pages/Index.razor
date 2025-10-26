@@ -1,8 +1,65 @@
-@page "/"
+﻿@page "/"
 
-<h1>PinTheHighwayCrash</h1>
-<p>This free Blazor WebAssembly app lets you pin a highway crash location and quickly contact authorities.</p>
+<div class="hero d-flex flex-column justify-content-center align-items-center text-center min-vh-100">
+    <div class="hero-card shadow-lg border-0 rounded-4 p-4 p-md-5">
+        <div class="badge bg-danger-subtle text-danger fw-semibold mb-3">
+            <span class="me-1">🚨</span> Community Safety
+        </div>
 
-<p>
-    <a class="btn btn-primary" href="report">Open Report Page</a>
-</p>
+        <h1 class="fw-bold mb-2 text-primary">PinTheHighwayCrash</h1>
+        <p class="lead text-secondary mb-4">
+            Free, open-source Blazor WebAssembly to
+            <strong>pin a highway crash location</strong> and instantly contact authorities.
+        </p>
+
+        <div class="d-grid gap-3 mb-4">
+            <a class="btn btn-lg btn-danger shadow-sm fw-semibold pulse" href="report">
+                📍 Report a Crash
+            </a>
+
+            <div class="d-flex flex-column flex-md-row gap-2 justify-content-center">
+                <a class="btn btn-outline-secondary" href="health">
+                    <i class="bi bi-heart-pulse-fill me-1"></i> Run Health Check
+                </a>
+                <a class="btn btn-outline-dark" href="https://github.com/ajay3003/PinTheHighwayCrash" target="_blank" rel="noopener">
+                    <i class="bi bi-github me-1"></i> View on GitHub
+                </a>
+            </div>
+        </div>
+
+        <div class="row g-3 text-start text-secondary small feature-grid">
+            <div class="col-12 col-md-6 d-flex align-items-start gap-2">
+                <i class="bi bi-geo-alt-fill text-primary fs-5"></i>
+                <div>
+                    <div class="fw-semibold text-dark">Precise Pinning</div>
+                    Drag the map pin or center on your GPS location.
+                </div>
+            </div>
+            <div class="col-12 col-md-6 d-flex align-items-start gap-2">
+                <i class="bi bi-shield-lock-fill text-primary fs-5"></i>
+                <div>
+                    <div class="fw-semibold text-dark">Privacy-First</div>
+                    Location stays on device unless you choose to share.
+                </div>
+            </div>
+            <div class="col-12 col-md-6 d-flex align-items-start gap-2">
+                <i class="bi bi-telephone-inbound-fill text-primary fs-5"></i>
+                <div>
+                    <div class="fw-semibold text-dark">One-Tap Contact</div>
+                    Call 112, SMS, or WhatsApp with prefilled details.
+                </div>
+            </div>
+            <div class="col-12 col-md-6 d-flex align-items-start gap-2">
+                <i class="bi bi-check2-circle text-primary fs-5"></i>
+                <div>
+                    <div class="fw-semibold text-dark">Anti-Spam Gate</div>
+                    Sending allowed only when you’re at the scene.
+                </div>
+            </div>
+        </div>
+
+        <p class="mt-4 text-muted small">
+            Offline-friendly. Uses free OpenStreetMap tiles. No tracking or ads.
+        </p>
+    </div>
+</div>

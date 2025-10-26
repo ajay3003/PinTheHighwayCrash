@@ -1,13 +1,31 @@
-@inherits LayoutComponentBase
+﻿@inherits LayoutComponentBase
 
 <div class="page">
-    <div class="sidebar">
+    <!-- Sidebar -->
+    <div class="sidebar shadow-sm">
+        <div class="brand mb-3 px-3 pt-3">
+            🚨 <strong>PinTheHighwayCrash</strong>
+        </div>
+
         <NavMenu />
+
+        <div class="meta small">
+            <div>Version 1.0</div>
+            <div class="text-muted">© 2025 Community Build</div>
+        </div>
     </div>
 
+    <!-- Main content -->
     <main>
-        <div class="top-row px-4">
-            <a href="https://github.com/" target="_blank">GitHub</a>
+        <div class="top-row justify-content-between px-4">
+            <div>
+                <a class="fw-semibold text-decoration-none text-primary" href="/">🏠 Home</a>
+            </div>
+            <div>
+                <a href="https://github.com/ajay3003/PinTheHighwayCrash" target="_blank" class="text-muted text-decoration-none">
+                    <i class="bi bi-github"></i> GitHub
+                </a>
+            </div>
         </div>
 
         <div class="content px-4">

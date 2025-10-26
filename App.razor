@@ -1,11 +1,85 @@
-<Router AppAssembly="@typeof(App).Assembly">
+@using Microsoft.AspNetCore.Components.Routing
+@inject NavigationManager Nav
+
+<Router AppAssembly="@typeof(App).Assembly"
+        OnNavigateAsync="HandleNavigateAsync">
+
     <Found Context="routeData">
-        <RouteView RouteData="routeData" DefaultLayout="@typeof(MainLayout)" />
-        <FocusOnNavigate RouteData="routeData" Selector="h1" />
+        @if (_isNavigating)
+        {
+            <!-- Slim top progress bar -->
+            <div class="position-fixed top-0 start-0 w-100" style="z-index: 1050;">
+                <div class="progress rounded-0" style="height: 4px;">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: 100%;"></div>
+                </div>
+            </div>
+        }
+
+        <ErrorBoundary @ref="_errorBoundary">
+            <ChildContent>
+                <RouteView RouteData="routeData" DefaultLayout="@typeof(MainLayout)" />
+                <FocusOnNavigate RouteData="routeData" Selector="h1" />
+            </ChildContent>
+
+            <ErrorContent>
+                <div class="container py-5">
+                    <div class="alert alert-danger shadow-sm" role="alert">
+                        <h4 class="alert-heading">Something went wrong</h4>
+                        <p class="mb-2">
+                            The page crashed. This is usually temporary or a bad navigation state.
+                        </p>
+                        <div class="d-flex gap-2 mt-3">
+                            <button class="btn btn-primary" @onclick="Recover">Try again</button>
+                            <a class="btn btn-outline-secondary" href="/">Go Home</a>
+                        </div>
+                        <div class="mt-2 small text-muted">
+                            If the error persists, refresh the browser (Ctrl/Cmd + R).
+                        </div>
+                    </div>
+                </div>
+            </ErrorContent>
+        </ErrorBoundary>
     </Found>
+
     <NotFound>
         <LayoutView Layout="@typeof(MainLayout)">
-            <p role="alert">Sorry, there's nothing at this address.</p>
+            <div class="container py-5 text-center">
+                <h1 class="display-6">Page not found</h1>
+                <p class="lead text-muted">Sorry, there's nothing at this address.</p>
+                <div class="d-inline-flex gap-2 mt-3">
+                    <a class="btn btn-primary" href="/">Go to Home</a>
+                    <a class="btn btn-outline-danger" href="report">Report a Crash</a>
+                    <a class="btn btn-outline-secondary" href="health">Run Health Check</a>
+                </div>
+            </div>
         </LayoutView>
     </NotFound>
 </Router>
+
+@code {
+    private bool _isNavigating;
+    private ErrorBoundary? _errorBoundary;
+
+    protected override void OnInitialized()
+    {
+        // Clear previous error UI when navigating to a new location
+        Nav.LocationChanged += (_, __) => _errorBoundary?.Recover();
+    }
+
+    private async Task HandleNavigateAsync(NavigationContext context)
+    {
+        try
+        {
+            _isNavigating = true;
+            StateHasChanged();
+            await Task.Yield(); // keeps the progress bar visible briefly
+        }
+        finally
+        {
+            _isNavigating = false;
+            StateHasChanged();
+        }
+    }
+
+    private void Recover() => _errorBoundary?.Recover();
+}

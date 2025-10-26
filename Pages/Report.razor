@@ -197,13 +197,13 @@ else
     private async Task FirstLoad()
     {
         var result = await Geo.TryGetCurrentPositionAsync(timeoutMs: 10000, highAccuracy: true);
+
         if (!result.IsSuccess || result.Position is null)
         {
             _hasRealFix = false;
             _error = result.ErrorMessage ?? "Could not get location.";
             _meLat = FallbackLat; _meLng = FallbackLng; _accuracy = 9999;
             _pinLat = _meLat; _pinLng = _meLng;
-            await EnsureMapInitialized(_meLat, _meLng);
             _manualMsg = "GPS blocked/unavailable — paste a link, Plus Code, or coordinates to set the pin.";
         }
         else
@@ -214,15 +214,21 @@ else
             _meLng = result.Position.Longitude;
             _accuracy = Math.Round(result.Position.AccuracyMeters);
             _pinLat = _meLat; _pinLng = _meLng;
-            await EnsureMapInitialized(_meLat, _meLng);
-            if (_onRoadCheckEnabled)
-                await VerifyIfOnRoad();
         }
 
         UpdateDistance();
+
+        // 👇 render the map <div> first
         _loading = false;
         StateHasChanged();
+
+        // 👇 now the container exists: safe to init Leaflet
+        await EnsureMapInitialized(_pinLat, _pinLng);
+
+        if (_onRoadCheckEnabled)
+            await VerifyIfOnRoad();
     }
+
 
     private async Task EnsureMapInitialized(double lat, double lng)
     {
@@ -426,7 +432,7 @@ else
         var body = Uri.EscapeDataString(BuildReportText());
         var url = $"mailto:{_email}?subject={subject}&body={body}";
         await JS.InvokeVoidAsync("shareInterop.openUrl", url);
-        _submitMsg = $"Opened email composer to @_email.";
+        _submitMsg = $"Opened email composer to {_email}.";
     }
 
     private async Task CopyReport()

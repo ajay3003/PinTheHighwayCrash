@@ -1,5 +1,6 @@
 ﻿using System.Globalization;
 using System.Net.Http.Json;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Options;
 using PinTheHighwayCrash.Models;
@@ -10,6 +11,9 @@ public class VerificationService
 {
     private readonly HttpClient _http;
     private readonly GeoOptions _geo;
+
+    private static readonly JsonSerializerOptions _jsonOpts =
+        new() { PropertyNameCaseInsensitive = true };
 
     public VerificationService(HttpClient http, IOptions<GeoOptions> geo)
     {
@@ -24,7 +28,7 @@ public class VerificationService
     }
 
     // ------------------------------------------------------------
-    // 1) Reverse: “Is this point on a road?” (your original flow)
+    // 1) Reverse: “Is this point on a road?”
     // ------------------------------------------------------------
     public async Task<OnRoadResult> VerifyIfOnRoadAsync(double lat, double lng, CancellationToken ct = default)
     {
@@ -35,24 +39,31 @@ public class VerificationService
         if (string.IsNullOrWhiteSpace(baseUrl))
             return new OnRoadResult(true, "Reverse URL not configured.");
 
-        var url =
-            $"{baseUrl}?format=jsonv2&lat={lat.ToString(CultureInfo.InvariantCulture)}&lon={lng.ToString(CultureInfo.InvariantCulture)}&zoom=18&addressdetails=1";
+        var url = $"{baseUrl}?format=jsonv2" +
+                  $"&lat={lat.ToString(CultureInfo.InvariantCulture)}" +
+                  $"&lon={lng.ToString(CultureInfo.InvariantCulture)}" +
+                  $"&zoom=18&addressdetails=1";
 
-        // Append email (optional but encouraged by OSM)
         if (!string.IsNullOrWhiteSpace(_geo.OnRoadVerification.NominatimEmail))
             url += $"&email={Uri.EscapeDataString(_geo.OnRoadVerification.NominatimEmail)}";
+        if (!string.IsNullOrWhiteSpace(_geo.OnRoadVerification.AcceptLanguage))
+            url += $"&accept-language={Uri.EscapeDataString(_geo.OnRoadVerification.AcceptLanguage!)}";
+        if (!string.IsNullOrWhiteSpace(_geo.OnRoadVerification.PreferredCountryCodes))
+            url += $"&countrycodes={Uri.EscapeDataString(_geo.OnRoadVerification.PreferredCountryCodes!)}";
 
         using var resp = await _http.GetAsync(url, ct);
+
+        if ((int)resp.StatusCode == 429)
+            return new OnRoadResult(true, "Reverse geocode rate-limited by Nominatim (HTTP 429). Try again shortly.");
         if (!resp.IsSuccessStatusCode)
             return new OnRoadResult(true, "Reverse geocode unavailable (network/rate limit).");
 
-        var json = await resp.Content.ReadFromJsonAsync<NominatimReverseResponse>(cancellationToken: ct);
+        var json = await resp.Content.ReadFromJsonAsync<NominatimReverseResponse>(_jsonOpts, ct);
 
         var cls = json?.Category ?? string.Empty;
         var typ = json?.Type ?? string.Empty;
         var addr = json?.Address ?? new Dictionary<string, string>();
 
-        // Simple heuristic — consider it "on road" if Nominatim classifies as a road/highway type.
         var isLikelyRoad =
             cls.Equals("highway", StringComparison.OrdinalIgnoreCase) ||
             typ.Contains("road", StringComparison.OrdinalIgnoreCase) ||
@@ -86,7 +97,6 @@ public class VerificationService
     // ------------------------------------------------------------
     // 2) Forward: text / Plus Code / place → coordinates (fallback)
     // ------------------------------------------------------------
-
     public record GeoPoint(double Lat, double Lng, string? Label);
 
     /// <summary>
@@ -99,19 +109,33 @@ public class VerificationService
         if (!_geo.OnRoadVerification.Enabled || _geo.OnRoadVerification.Provider != "Nominatim")
             return null;
 
-        var searchUrl = BuildSearchUrlFromReverse(_geo.OnRoadVerification.NominatimReverseUrl);
-        if (string.IsNullOrWhiteSpace(searchUrl)) return null;
+        // Prefer explicit search endpoint from config (best practice).
+        var baseUrl = _geo.OnRoadVerification.NominatimSearchUrl?.Trim();
+        if (string.IsNullOrWhiteSpace(baseUrl))
+        {
+            // Fallback: derive from reverse url if provided
+            baseUrl = BuildSearchUrlFromReverse(_geo.OnRoadVerification.NominatimReverseUrl);
+        }
+        if (string.IsNullOrWhiteSpace(baseUrl)) return null;
 
-        var url = $"{searchUrl}?format=jsonv2&q={Uri.EscapeDataString(query)}&limit=1";
+        var url = $"{baseUrl}?format=jsonv2" +
+                  $"&q={Uri.EscapeDataString(query)}" +
+                  $"&limit=1&addressdetails=1";
 
         if (!string.IsNullOrWhiteSpace(_geo.OnRoadVerification.NominatimEmail))
             url += $"&email={Uri.EscapeDataString(_geo.OnRoadVerification.NominatimEmail)}";
+        if (!string.IsNullOrWhiteSpace(_geo.OnRoadVerification.AcceptLanguage))
+            url += $"&accept-language={Uri.EscapeDataString(_geo.OnRoadVerification.AcceptLanguage!)}";
+        if (!string.IsNullOrWhiteSpace(_geo.OnRoadVerification.PreferredCountryCodes))
+            url += $"&countrycodes={Uri.EscapeDataString(_geo.OnRoadVerification.PreferredCountryCodes!)}";
 
         using var resp = await _http.GetAsync(url, ct);
+
+        if ((int)resp.StatusCode == 429) return null; // rate-limited
         if (!resp.IsSuccessStatusCode) return null;
 
-        var list = await resp.Content.ReadFromJsonAsync<List<NominatimSearchItem>>(cancellationToken: ct);
-        var first = list is { Count: > 0 } ? list![0] : null;
+        var list = await resp.Content.ReadFromJsonAsync<List<NominatimSearchItem>>(_jsonOpts, ct);
+        var first = (list != null && list.Count > 0) ? list[0] : null;
         if (first is null) return null;
 
         if (!double.TryParse(first.Lat, NumberStyles.Float, CultureInfo.InvariantCulture, out var lat)) return null;
@@ -124,7 +148,6 @@ public class VerificationService
     {
         if (string.IsNullOrWhiteSpace(reverseUrl)) return null;
         var trimmed = reverseUrl.TrimEnd('/');
-        // If configured reverse url ends with /reverse, swap to /search; otherwise append /search
         if (trimmed.EndsWith("/reverse", StringComparison.OrdinalIgnoreCase))
             return trimmed[..^("/reverse".Length)] + "/search";
         return trimmed + "/search";

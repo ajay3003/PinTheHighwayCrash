@@ -1,10 +1,9 @@
 ﻿using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using PinTheHighwayCrash;
-using PinTheHighwayCrash.Services;
 using PinTheHighwayCrash.Models;
+using PinTheHighwayCrash.Services;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 
@@ -12,14 +11,14 @@ var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
-// ---------------- HttpClient ----------------
+// ---------------- HttpClient (WASM-safe) ----------------
+// NOTE: Browser HttpClient doesn’t support Timeout — use per-call CTS if needed.
 builder.Services.AddScoped(sp => new HttpClient
 {
-    BaseAddress = new Uri(builder.HostEnvironment.BaseAddress),
-    Timeout = TimeSpan.FromSeconds(15)
+    BaseAddress = new Uri(builder.HostEnvironment.BaseAddress)
 });
 
-// ---------------- Strongly Typed Options (correct for WASM) ----------------
+// ---------------- Strongly Typed Options ----------------
 builder.Services.Configure<EmergencyOptions>(cfg => builder.Configuration.GetSection("Emergency").Bind(cfg));
 builder.Services.Configure<MapOptions>(cfg => builder.Configuration.GetSection("Map").Bind(cfg));
 builder.Services.Configure<GeoOptions>(cfg => builder.Configuration.GetSection("Geo").Bind(cfg));
@@ -29,13 +28,10 @@ builder.Services.Configure<FeatureFlags>(cfg => builder.Configuration.GetSection
 // ---------------- App Services ----------------
 builder.Services.AddScoped<GeoService>();
 builder.Services.AddScoped<HealthService>();
-builder.Services.AddScoped<VerificationService>(); // optional "on-road" check
+builder.Services.AddScoped<VerificationService>(); // on-road + forward geocode
 
 // ---------------- Logging ----------------
-// Option 2 appsettings shape uses Logging:LogLevel:Default
-var logSection = builder.Configuration.GetSection("Logging");
-var min = builder.Configuration["Logging:LogLevel:Default"];   // <-- key changed
-
+var min = builder.Configuration["Logging:LogLevel:Default"];
 if (Enum.TryParse<LogLevel>(min, out var configuredLevel))
 {
     builder.Logging.SetMinimumLevel(configuredLevel);
@@ -49,8 +45,8 @@ else
 #endif
 }
 
-// Optional: allow disabling console logs via Logging:Console:Enable=false
-var consoleEnable = logSection.GetSection("Console")["Enable"];
+// Optional: disable console logs via Logging:Console:Enable=false
+var consoleEnable = builder.Configuration["Logging:Console:Enable"];
 if (string.Equals(consoleEnable, "false", StringComparison.OrdinalIgnoreCase))
 {
     builder.Logging.ClearProviders();

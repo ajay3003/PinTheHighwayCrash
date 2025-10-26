@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("PinTheHighwayCrash")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+c45e93f4ba668b34ad2e95b038d62e47eaabced6")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+ed3c9df562b5d20aedc7a27e7392daaac439a294")]
 [assembly: System.Reflection.AssemblyProductAttribute("PinTheHighwayCrash")]
 [assembly: System.Reflection.AssemblyTitleAttribute("PinTheHighwayCrash")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

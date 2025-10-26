@@ -7,34 +7,34 @@
     <title>PinTheHighwayCrash</title>
     <base href="/" />
 
-    <!-- Theme color for mobile address bar -->
+    <!-- Theme color for mobile browsers -->
     <meta name="theme-color" content="#0d6efd" />
 
-    <!-- Performance: preconnect to CDNs used -->
+    <!-- Performance: preconnect to CDNs -->
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <link rel="preconnect" href="https://unpkg.com" crossorigin>
-    <link rel="preconnect" href="https://{s}.tile.openstreetmap.org" crossorigin>
+    <link rel="preconnect" href="https://a.tile.openstreetmap.org" crossorigin>
 
-    <!-- Bootstrap (free) -->
+    <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
           rel="stylesheet"
           integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
           crossorigin="anonymous" />
 
-    <!-- Bootstrap Icons (free) -->
-    <link rel="stylesheet"
-          href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" />
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
+          rel="stylesheet" />
 
-    <!-- Leaflet (free) -->
-    <link rel="stylesheet"
-          href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    <!-- Leaflet (Map library) -->
+    <link href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+          rel="stylesheet"
           integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
           crossorigin="" />
 
-    <!-- App CSS -->
+    <!-- App-specific CSS -->
     <link href="css/app.css" rel="stylesheet" />
 
-    <!-- Simple splash styling -->
+    <!-- Minimal loading style -->
     <style>
         #app {
             min-height: 100vh;
@@ -46,6 +46,7 @@
         }
     </style>
 </head>
+
 <body>
     <noscript>
         <div class="alert alert-danger m-3" role="alert">
@@ -53,7 +54,7 @@
         </div>
     </noscript>
 
-    <!-- Nicer loading screen -->
+    <!-- Initial splash / loading screen -->
     <div id="app" aria-busy="true" aria-live="polite">
         <div class="text-center">
             <div class="spinner-border text-primary mb-3" role="status" aria-hidden="true"></div>
@@ -61,27 +62,26 @@
         </div>
     </div>
 
-    <!-- --- JS: libraries & interop (load BEFORE Blazor) --- -->
-    <!-- Leaflet (free) -->
+    <!-- ---------------- JS order (critical) ---------------- -->
+    <!-- 1️⃣ Leaflet -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
             integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
             crossorigin=""
             defer></script>
 
-    <!-- Health check interop (for /health page) -->
+    <!-- 2️⃣ Interop modules (must load BEFORE Blazor) -->
     <script src="js/healthInterop.js" defer></script>
-
-    <!-- Map interop (Leaflet + geolocation helpers) -->
     <script src="js/mapInterop.js" defer></script>
-
-    <!-- Share interop (tel:, sms:, clipboard) -->
     <script src="js/shareInterop.js" defer></script>
 
-    <!-- (Optional) Bootstrap JS bundle if you use dropdowns/modals/tooltips -->
-    <!-- <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+    <!-- 3️⃣ (Optional) Bootstrap JS Bundle (for modals, tooltips, etc.) -->
+    <!--
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
             integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
-            crossorigin="anonymous" defer></script> -->
-    <!-- Blazor bootstrapping (load LAST) -->
+            crossorigin="anonymous"
+            defer></script>
+    -->
+    <!-- 4️⃣ Blazor bootstrapping (ALWAYS last) -->
     <script src="_framework/blazor.webassembly.js" defer></script>
 </body>
 </html>

@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -8,15 +7,20 @@ using Microsoft.JSInterop;
 namespace PinTheHighwayCrash.Services
 {
     /// <summary>
-    /// Geolocation wrapper for Blazor WASM with strong typing and graceful fallbacks.
-    /// Works with either:
-    ///  - window.geoHelpers.getPosition(options)  // rich wrapper
-    ///  - navigator.geolocation.getCurrentPositionPromise(options) // legacy promise
+    /// Geolocation wrapper for Blazor WebAssembly.
+    /// 
+    /// Supports:
+    ///  • window.geoHelpers.getPosition(options) — rich JS wrapper
+    ///  • navigator.geolocation.getCurrentPositionPromise(options) — legacy fallback
+    /// 
+    /// Provides structured results and graceful error mapping.
     /// </summary>
     public sealed class GeoService
     {
         private readonly IJSRuntime _js;
         public GeoService(IJSRuntime js) => _js = js;
+
+        // ---------- Models ----------
 
         public record Position(double Latitude, double Longitude, double AccuracyMeters);
 
@@ -39,19 +43,22 @@ namespace PinTheHighwayCrash.Services
             public static GeoResult Fail(GeoErrorCode code, string? msg) => new(null, code, msg);
         }
 
+        // ---------- Public API ----------
+
         /// <summary>
-        /// Backward-compatible helper returning only Position or null.
-        /// Internally uses TryGetCurrentPositionAsync.
+        /// Simpler helper that returns only the position or null.
         /// </summary>
-        public async Task<Position?> GetCurrentPositionAsync(int timeoutMs = 10000, bool highAccuracy = true, CancellationToken ct = default)
+        public async Task<Position?> GetCurrentPositionAsync(
+            int timeoutMs = 10000,
+            bool highAccuracy = true,
+            CancellationToken ct = default)
         {
             var r = await TryGetCurrentPositionAsync(timeoutMs, highAccuracy, ct);
             return r.Position;
         }
 
         /// <summary>
-        /// Preferred API: returns a typed GeoResult (Position + error info).
-        /// Tries geoHelpers.getPosition first, then falls back to navigator.geolocation.getCurrentPositionPromise.
+        /// Gets the current location, returning full diagnostic info.
         /// </summary>
         public async Task<GeoResult> TryGetCurrentPositionAsync(
             int timeoutMs = 30000,
@@ -62,7 +69,7 @@ namespace PinTheHighwayCrash.Services
             {
                 JsonElement result;
 
-                // 1) Try the rich wrapper if present
+                // --- Try modern helper first ---
                 try
                 {
                     result = await _js.InvokeAsync<JsonElement>(
@@ -72,22 +79,23 @@ namespace PinTheHighwayCrash.Services
                 }
                 catch (JSException)
                 {
-                    // 2) Fallback to the legacy promise wrapper
+                    // --- Fallback to legacy promise-based API ---
                     result = await _js.InvokeAsync<JsonElement>(
                         "navigator.geolocation.getCurrentPositionPromise",
                         ct,
                         new { enableHighAccuracy = highAccuracy, timeout = timeoutMs, maximumAge = 0 });
                 }
 
-                // Shape A (rich): { ok: true, coords: { latitude, longitude, accuracy } }
+                // --- Rich format: { ok: true, coords: { latitude, longitude, accuracy } } ---
                 if (result.ValueKind == JsonValueKind.Object &&
-                    result.TryGetProperty("ok", out var okProp) && okProp.ValueKind == JsonValueKind.True)
+                    result.TryGetProperty("ok", out var okProp) &&
+                    okProp.ValueKind == JsonValueKind.True)
                 {
                     var c = result.GetProperty("coords");
                     return GeoResult.Success(ReadCoords(c));
                 }
 
-                // Shape B (legacy): { coords: { latitude, longitude, accuracy } }
+                // --- Legacy format: { coords: { latitude, longitude, accuracy } } ---
                 if (result.ValueKind == JsonValueKind.Object &&
                     result.TryGetProperty("coords", out var coordsEl) &&
                     coordsEl.ValueKind == JsonValueKind.Object)
@@ -95,7 +103,7 @@ namespace PinTheHighwayCrash.Services
                     return GeoResult.Success(ReadCoords(coordsEl));
                 }
 
-                return GeoResult.Fail(GeoErrorCode.NoCoords, "No coordinates returned.");
+                return GeoResult.Fail(GeoErrorCode.NoCoords, "No coordinates returned from geolocation API.");
             }
             catch (JSException jse)
             {
@@ -112,6 +120,8 @@ namespace PinTheHighwayCrash.Services
             }
         }
 
+        // ---------- Helpers ----------
+
         private static Position ReadCoords(JsonElement coords)
         {
             var lat = coords.TryGetProperty("latitude", out var latEl) ? latEl.GetDouble() : 0d;
@@ -122,22 +132,24 @@ namespace PinTheHighwayCrash.Services
 
         private static (GeoErrorCode code, string message) ParseError(string raw)
         {
-            // If the JS side rejected with a structured { code, message }, parse it.
             try
             {
                 using var doc = JsonDocument.Parse(raw);
                 var root = doc.RootElement;
 
                 var codeText = root.TryGetProperty("code", out var cEl) && cEl.ValueKind == JsonValueKind.String
-                    ? cEl.GetString() : null;
+                    ? cEl.GetString()
+                    : null;
+
                 var msgText = root.TryGetProperty("message", out var mEl) && mEl.ValueKind == JsonValueKind.String
-                    ? mEl.GetString() : raw;
+                    ? mEl.GetString()
+                    : raw;
 
                 return (MapCode(codeText, raw), msgText ?? raw);
             }
             catch
             {
-                // Fallback: infer from message text
+                // Fallback: infer from message text if JSON parse fails
                 var s = raw.ToLowerInvariant();
                 if (s.Contains("permission")) return (GeoErrorCode.PermissionDenied, raw);
                 if (s.Contains("unavailable")) return (GeoErrorCode.PositionUnavailable, raw);
@@ -149,33 +161,39 @@ namespace PinTheHighwayCrash.Services
 
         private static GeoErrorCode MapCode(string? code, string rawFallback)
         {
-            switch (code?.Trim().ToUpperInvariant())
+            if (string.IsNullOrWhiteSpace(code))
+                return GeoErrorCode.JsException;
+
+            var c = code.Trim().ToUpperInvariant();
+            return c switch
             {
-                case "PERMISSION_DENIED": return GeoErrorCode.PermissionDenied;
-                case "POSITION_UNAVAILABLE": return GeoErrorCode.PositionUnavailable;
-                case "TIMEOUT": return GeoErrorCode.Timeout;
-                case "UNSUPPORTED": return GeoErrorCode.Unsupported;
-                case "NO_COORDS": return GeoErrorCode.NoCoords;
-                case "JS_EXCEPTION": return GeoErrorCode.JsException;
-                case "EXCEPTION": return GeoErrorCode.Exception;
-                case null: return GeoErrorCode.JsException;
-                default:
-                    // unknown string; try to infer
-                    var s = code.ToLowerInvariant();
-                    if (s.Contains("permission")) return GeoErrorCode.PermissionDenied;
-                    if (s.Contains("unavailable")) return GeoErrorCode.PositionUnavailable;
-                    if (s.Contains("timeout")) return GeoErrorCode.Timeout;
-                    if (s.Contains("unsupported")) return GeoErrorCode.Unsupported;
-                    return GeoErrorCode.JsException;
-            }
+                "PERMISSION_DENIED" => GeoErrorCode.PermissionDenied,
+                "POSITION_UNAVAILABLE" => GeoErrorCode.PositionUnavailable,
+                "TIMEOUT" => GeoErrorCode.Timeout,
+                "UNSUPPORTED" => GeoErrorCode.Unsupported,
+                "NO_COORDS" => GeoErrorCode.NoCoords,
+                "JS_EXCEPTION" => GeoErrorCode.JsException,
+                "EXCEPTION" => GeoErrorCode.Exception,
+                _ => GuessCodeFromText(code)
+            };
+        }
+
+        private static GeoErrorCode GuessCodeFromText(string text)
+        {
+            var s = text.ToLowerInvariant();
+            if (s.Contains("permission")) return GeoErrorCode.PermissionDenied;
+            if (s.Contains("unavailable")) return GeoErrorCode.PositionUnavailable;
+            if (s.Contains("timeout")) return GeoErrorCode.Timeout;
+            if (s.Contains("unsupported")) return GeoErrorCode.Unsupported;
+            return GeoErrorCode.JsException;
         }
 
         /// <summary>
-        /// Great-circle distance in meters using Haversine formula.
+        /// Computes great-circle distance (in meters) between two coordinates using the Haversine formula.
         /// </summary>
         public static double HaversineMeters(double lat1, double lon1, double lat2, double lon2)
         {
-            const double R = 6371000;
+            const double R = 6371000; // Earth radius (m)
             double dLat = (lat2 - lat1) * Math.PI / 180.0;
             double dLon = (lon2 - lon1) * Math.PI / 180.0;
             double a = Math.Sin(dLat / 2) * Math.Sin(dLat / 2) +

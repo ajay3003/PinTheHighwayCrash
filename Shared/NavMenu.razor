@@ -1,11 +1,11 @@
 ﻿<nav class="d-flex flex-column flex-shrink-0 p-3 bg-dark text-white min-vh-100 shadow-sm" style="width: 240px;">
+    <!-- Brand -->
     <a href="/" class="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-white text-decoration-none">
-        <span class="fs-4 fw-semibold">
-            🚨 PinTheHighwayCrash
-        </span>
+        <span class="fs-4 fw-semibold">🚨 PinTheHighwayCrash</span>
     </a>
     <hr class="border-secondary" />
 
+    <!-- Navigation links -->
     <ul class="nav nav-pills flex-column mb-auto">
         <li class="nav-item mb-1">
             <NavLink class="nav-link text-white d-flex align-items-center gap-2"
@@ -30,14 +30,10 @@
     </ul>
 
     <hr class="border-secondary" />
+
+    <!-- Footer -->
     <div class="text-muted small">
         <i class="bi bi-info-circle"></i> v1.0 beta
-        <div class="mt-1">
-            <a href="https://github.com/ajay3003/PinTheHighwayCrash"
-               target="_blank" class="link-light text-decoration-none">
-                <i class="bi bi-github"></i> GitHub
-            </a>
-        </div>
     </div>
 </nav>
 
@@ -59,27 +55,25 @@
         }
 
     @@media (max-width: 992px) {
-        nav .d-flex
+        nav.d-flex {
+            width: 100%;
+            min-height: auto;
+            flex-direction: row !important;
+            align-items: center;
+            justify-content: space-around;
+        }
 
-    {
-        width: 100%;
-        min-height: auto;
-        flex-direction: row !important;
-        align-items: center;
-        justify-content: space-around;
+        nav ul {
+            flex-direction: row !important;
+            margin-bottom: 0 !important;
+        }
+
+        nav .nav-item {
+            margin-bottom: 0 !important;
+        }
+
+        nav .nav-link {
+            padding: 0.5rem;
+        }
     }
-
-    nav ul {
-        flex-direction: row !important;
-        margin-bottom: 0 !important;
-    }
-
-    nav .nav-item {
-        margin-bottom: 0 !important;
-    }
-
-    nav .nav-link {
-        padding: 0.5rem;
-    }
-
-    }</style>
+</style>

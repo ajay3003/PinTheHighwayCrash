@@ -1,4 +1,4 @@
-// @ts-nocheck   // Tell VS/TypeScript to stop type-checking this JS file
+// @ts-nocheck   // Disable TypeScript checking — plain ES5 file
 
 // ---------------- Geolocation helpers (robust with hard timeout) ----------------
 (function () {
@@ -31,7 +31,7 @@
                 }
                 var opts = Object.assign({ enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }, options || {});
 
-                // Hard timeout guard (some envs ignore built-in timeout)
+                // Hard timeout guard
                 var guard = setTimeout(function () {
                     reject({ code: "TIMEOUT", message: "Timed out waiting for a location fix." });
                 }, opts.timeout || 10000);
@@ -102,7 +102,8 @@ window.mapInterop = (function () {
         }
     }
 
-    function initMap(divId, lat, lng, dotnetRef) {
+    // Initialize Leaflet map
+    function initMap(divId, lat, lng, dotnetRef, opts) {
         ensureLeaflet();
         _dotnetRef = dotnetRef;
 
@@ -111,10 +112,21 @@ window.mapInterop = (function () {
             dispose();
         }
 
-        map = L.map(divId, { zoomControl: true }).setView([lat, lng], 16);
+        opts = opts || {};
+        var initialZoom = typeof opts.initialZoom === "number" ? opts.initialZoom : 16;
+        var maxZoom = typeof opts.maxZoom === "number" ? opts.maxZoom : 19;
+        var tileUrl = opts.tileUrl || "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
+        var detectRetina = opts.detectRetina !== false; // default true
+        var scrollZoom = opts.scrollWheelZoom !== false; // default true
 
-        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-            maxZoom: 19,
+        map = L.map(divId, {
+            zoomControl: true,
+            scrollWheelZoom: scrollZoom
+        }).setView([lat, lng], initialZoom);
+
+        L.tileLayer(tileUrl, {
+            maxZoom: maxZoom,
+            detectRetina: detectRetina,
             attribution: "&copy; OpenStreetMap contributors"
         }).addTo(map);
 
@@ -130,18 +142,19 @@ window.mapInterop = (function () {
             if (_dotnetRef) _dotnetRef.invokeMethodAsync("OnMapMarkerMoved", e.latlng.lat, e.latlng.lng);
         });
 
-        // Handle container resize (e.g., when sidebar toggles)
+        // Handle container resize (e.g., after sidebar open)
         setTimeout(function () {
             if (map) map.invalidateSize();
         }, 0);
     }
 
+    // Center map on given coordinates (keep current zoom)
     function setView(lat, lng) {
-        if (map) map.setView([lat, lng], 16);
+        if (map) map.setView([lat, lng], map.getZoom());
         if (marker) marker.setLatLng([lat, lng]);
     }
 
-    // Optional helpers (non-breaking)
+    // Optional helpers
     function setPin(lat, lng) {
         if (marker) marker.setLatLng([lat, lng]);
     }
@@ -168,6 +181,7 @@ window.mapInterop = (function () {
         } catch (_) { /* no-op */ }
     }
 
+    // Public API exposed to Blazor
     return {
         initMap: initMap,
         setView: setView,

@@ -59,6 +59,18 @@
               "target": "Package",
               "version": "[8.0.0, )"
             },
+            "Microsoft.Extensions.Configuration": {
+              "target": "Package",
+              "version": "[9.0.10, )"
+            },
+            "Microsoft.Extensions.Options": {
+              "target": "Package",
+              "version": "[9.0.10, )"
+            },
+            "Microsoft.Extensions.Options.ConfigurationExtensions": {
+              "target": "Package",
+              "version": "[9.0.10, )"
+            },
             "Microsoft.NET.ILLink.Tasks": {
               "suppressParent": "All",
               "target": "Package",

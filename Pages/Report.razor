@@ -1,9 +1,15 @@
 @page "/report"
+@using Microsoft.Extensions.Options
+@using PinTheHighwayCrash.Models
 @using PinTheHighwayCrash.Services
 @inject IJSRuntime JS
 @inject GeoService Geo
+@inject VerificationService Verify
+@inject IOptions<EmergencyOptions> EmergencyOpts
+@inject IOptions<GeoOptions> GeoOpts
+@implements IDisposable
 
-<h1>Report Highway Crash (India)</h1>
+<h1>Report Highway Crash (@_country)</h1>
 
 @if (_loading)
 {
@@ -12,27 +18,30 @@
         <span>Getting your location…</span>
     </div>
 }
-else if (!string.IsNullOrWhiteSpace(_error))
+else
 {
-    <div class="alert alert-warning" role="alert">
-        <strong>⚠️ Unable to get location:</strong> @_error
-        <div class="mt-1">
-            You can still <b>manually pin</b> the crash location on the map below.
-            For anti-spam, sending is enabled only after a valid GPS fix.
+    @if (!string.IsNullOrWhiteSpace(_error))
+    {
+        <div class="alert alert-warning" role="alert">
+            <strong>⚠️ Unable to get location:</strong> @_error
+            <div class="mt-1">
+                You can still <b>manually pin</b> the crash location on the map below.
+            </div>
+            <button class="btn btn-outline-primary mt-3" @onclick="Retry">Retry</button>
+            <a class="btn btn-link mt-3" href="health">Run Health Check</a>
         </div>
-        <button class="btn btn-outline-primary mt-3" @onclick="Retry">Retry</button>
-        <a class="btn btn-link mt-3" href="health">Run Health Check</a>
-    </div>
+    }
 
     <div class="mb-2">
-        <button class="btn btn-outline-secondary me-2" @onclick="CenterOnMe">Try Center on Me</button>
-        <button class="btn btn-outline-primary" @onclick="SetPinToMyLocationAndView">Set Pin to My Location (if available)</button>
+        <button class="btn btn-outline-secondary me-2" @onclick="CenterOnMe">Center on Me</button>
+        <button class="btn btn-outline-primary" @onclick="SetPinToMyLocationAndView">Set Pin to My Location</button>
     </div>
 
     <div id="map" style="height: 420px; border-radius: 10px; margin-bottom: 1rem;"></div>
 
     <div class="mb-2">
-        <strong>Your GPS:</strong> @_meLat:F6, @_meLng:F6 (± @_accuracy m) @(!_hasRealFix ? "(no real fix)" : "")
+        <strong>Your GPS:</strong> @_meLat:F6, @_meLng:F6 (± @_accuracy m)
+        @(!_hasRealFix ? "(no real fix)" : "")
         <br />
         <strong>Pinned:</strong> @_pinLat:F6, @_pinLng:F6
         <br />
@@ -41,42 +50,23 @@ else if (!string.IsNullOrWhiteSpace(_error))
         {
             <span class="text-danger"> (Too far to submit)</span>
         }
-    </div>
 
-    <div class="mb-3">
-        <label class="form-label">What happened? (optional)</label>
-        <textarea class="form-control" @bind="_note" rows="3"
-                  placeholder="e.g., multi-vehicle crash, fire, blockage, injuries"></textarea>
-    </div>
-
-    <div class="d-flex flex-wrap gap-2">
-        <button class="btn btn-danger" disabled="@(!CanSend)" @onclick="Call112">Call 112</button>
-        <button class="btn btn-warning" disabled="@(!CanSend)" @onclick="SendSms">SMS (prefilled)</button>
-        <button class="btn btn-success" disabled="@(!CanSend)" @onclick="SendWhatsApp">WhatsApp (prefilled)</button>
-        <button class="btn btn-outline-secondary" @onclick="CopyReport">Copy Text</button>
-    </div>
-
-    @if (!string.IsNullOrWhiteSpace(_submitMsg))
-    {
-        <p class="mt-3">@_submitMsg</p>
-    }
-}
-else
-{
-    <div class="mb-2">
-        <button class="btn btn-secondary me-2" @onclick="CenterOnMe">Center on Me</button>
-        <button class="btn btn-outline-primary" @onclick="SetPinToMyLocationAndView">Set Pin to My Location</button>
-    </div>
-
-    <div id="map" style="height: 420px; border-radius: 10px; margin-bottom: 1rem;"></div>
-
-    <div class="mb-2">
-        <strong>Your GPS:</strong> @_meLat:F6, @_meLng:F6 (± @_accuracy m)<br />
-        <strong>Pinned:</strong> @_pinLat:F6, @_pinLng:F6<br />
-        <strong>Distance:</strong> @(_distanceMeters is null ? "—" : $"{_distanceMeters:F0} m")
-        @if (_distanceMeters is not null && _distanceMeters > _maxAllowedMeters)
+        @if (_onRoadCheckEnabled)
         {
-            <span class="text-danger"> (Too far to submit)</span>
+            <div class="mt-2">
+                @if (_verifyingRoad)
+                {
+                    <span class="text-muted">Checking if on road…</span>
+                }
+                else if (_onRoad == true)
+                {
+                    <span class="text-success">✅ On road (verified)</span>
+                }
+                else if (_onRoad == false)
+                {
+                    <span class="text-danger">⚠️ Not on a road (off-road)</span>
+                }
+            </div>
         }
     </div>
 
@@ -87,10 +77,37 @@ else
     </div>
 
     <div class="d-flex flex-wrap gap-2">
-        <button class="btn btn-danger" disabled="@(!CanSend)" @onclick="Call112">Call 112</button>
-        <button class="btn btn-warning" disabled="@(!CanSend)" @onclick="SendSms">SMS (prefilled)</button>
-        <button class="btn btn-success" disabled="@(!CanSend)" @onclick="SendWhatsApp">WhatsApp (prefilled)</button>
-        <button class="btn btn-outline-secondary" @onclick="CopyReport">Copy Text</button>
+        @if (_enableCall)
+        {
+            <button class="btn btn-danger" disabled="@(!CanSend)" @onclick="CallEmergency">
+                📞 Call @_phone
+            </button>
+        }
+
+        @if (_enableSms)
+        {
+            <button class="btn btn-warning" disabled="@(!CanSend)" @onclick="SendSms">
+                ✉️ SMS
+            </button>
+        }
+
+        @if (_enableWhatsApp)
+        {
+            <button class="btn btn-success" disabled="@(!CanSend)" @onclick="SendWhatsApp">
+                💬 WhatsApp
+            </button>
+        }
+
+        @if (_enableEmail)
+        {
+            <button class="btn btn-outline-info" disabled="@(!CanSend)" @onclick="SendEmail">
+                📧 Email
+            </button>
+        }
+
+        <button class="btn btn-outline-secondary" @onclick="CopyReport">
+            📋 Copy Text
+        </button>
     </div>
 
     @if (!string.IsNullOrWhiteSpace(_submitMsg))
@@ -102,62 +119,80 @@ else
 @code {
     private bool _loading = true;
     private string? _error;
-    private bool _hasRealFix = false;
-
+    private bool _hasRealFix;
     private double _meLat, _meLng, _accuracy;
     private double _pinLat, _pinLng;
     private double? _distanceMeters;
-    private const int _maxAllowedMeters = 150; // must be on-site
     private string? _note;
     private string? _submitMsg;
 
-    // Fallback center (India) when OS location is blocked
+    private bool _onRoadCheckEnabled;
+    private bool? _onRoad;
+    private bool _verifyingRoad;
+
+    private int _maxAllowedMeters = 150;
+
+    private string _phone = "112";
+    private string? _whatsApp;
+    private string? _email;
+    private string _country = "IN";
+    private bool _enableCall, _enableSms, _enableWhatsApp, _enableEmail;
+
     private const double FallbackLat = 20.5937;
     private const double FallbackLng = 78.9629;
 
+    private DotNetObjectReference<Report>? _selfRef;
+
+    // ✅ Fixed: not actually async — no awaits needed
+    protected override Task OnInitializedAsync()
+    {
+        var e = EmergencyOpts.Value;
+        _country = e.Country ?? "IN";
+        _phone = e.Phone ?? "112";
+        _whatsApp = e.WhatsAppNumber;
+        _email = e.Email;
+        _enableCall = e.EnableCall;
+        _enableSms = e.EnableSms;
+        _enableWhatsApp = e.EnableWhatsApp;
+        _enableEmail = e.EnableEmail;
+
+        var geo = GeoOpts.Value;
+        _maxAllowedMeters = geo.MaxDistanceMeters;
+        _onRoadCheckEnabled = geo.OnRoadVerification.Enabled;
+
+        return Task.CompletedTask; // prevents warning
+    }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!firstRender) return;
-        await FirstLoad();
+        if (firstRender)
+            await FirstLoad();
     }
 
     private async Task FirstLoad()
     {
         var result = await Geo.TryGetCurrentPositionAsync(timeoutMs: 10000, highAccuracy: true);
-
         if (!result.IsSuccess || result.Position is null)
         {
-            // Fallback: initialize map centered on India
             _hasRealFix = false;
-            _error = result.ErrorCode switch
-            {
-                GeoService.GeoErrorCode.PermissionDenied => "Location is blocked for this site or by policy. Allow in the browser if possible.",
-                GeoService.GeoErrorCode.PositionUnavailable => "Position unavailable — Windows Location Services may be disabled by your administrator.",
-                GeoService.GeoErrorCode.Timeout => "Timed out getting a location fix. Move near a window or try again.",
-                GeoService.GeoErrorCode.Unsupported => "This browser does not support the Geolocation API.",
-                _ => $"Location error: {result.ErrorMessage ?? "Unknown error."}"
-            };
-
+            _error = result.ErrorMessage ?? "Could not get location.";
             _meLat = FallbackLat; _meLng = FallbackLng; _accuracy = 9999;
             _pinLat = _meLat; _pinLng = _meLng;
-
             await EnsureMapInitialized(_meLat, _meLng);
-            UpdateDistance();
-            _loading = false;
-            StateHasChanged();
-            return;
+        }
+        else
+        {
+            _hasRealFix = true;
+            _error = null;
+            _meLat = result.Position.Latitude;
+            _meLng = result.Position.Longitude;
+            _accuracy = Math.Round(result.Position.AccuracyMeters);
+            _pinLat = _meLat; _pinLng = _meLng;
+            await EnsureMapInitialized(_meLat, _meLng);
+            if (_onRoadCheckEnabled)
+                await VerifyIfOnRoad();
         }
 
-        // Success: we have a real fix
-        _hasRealFix = true;
-        _error = null;
-
-        _meLat = result.Position.Latitude;
-        _meLng = result.Position.Longitude;
-        _accuracy = Math.Round(result.Position.AccuracyMeters);
-        _pinLat = _meLat; _pinLng = _meLng;
-
-        await EnsureMapInitialized(_meLat, _meLng);
         UpdateDistance();
         _loading = false;
         StateHasChanged();
@@ -165,75 +200,18 @@ else
 
     private async Task EnsureMapInitialized(double lat, double lng)
     {
-        await JS.InvokeVoidAsync("mapInterop.initMap", "map", lat, lng, DotNetObjectReference.Create(this));
+        _selfRef ??= DotNetObjectReference.Create(this);
+        await JS.InvokeVoidAsync("mapInterop.initMap", "map", lat, lng, _selfRef);
     }
 
     [JSInvokable]
-    public Task OnMapMarkerMoved(double lat, double lng)
+    public async Task OnMapMarkerMoved(double lat, double lng)
     {
         _pinLat = lat; _pinLng = lng;
         UpdateDistance();
+        if (_onRoadCheckEnabled)
+            await VerifyIfOnRoad();
         StateHasChanged();
-        return Task.CompletedTask;
-    }
-
-    private async Task Retry()
-    {
-        _submitMsg = null;
-        _loading = true;
-        _error = null;
-        StateHasChanged();
-
-        var result = await Geo.TryGetCurrentPositionAsync(timeoutMs: 10000, highAccuracy: true);
-        if (!result.IsSuccess || result.Position is null)
-        {
-            _hasRealFix = false;
-            _error = result.ErrorCode switch
-            {
-                GeoService.GeoErrorCode.PermissionDenied => "Location is blocked for this site or by policy. Allow in the browser if possible.",
-                GeoService.GeoErrorCode.PositionUnavailable => "Position unavailable — Windows Location Services may be disabled by your administrator.",
-                GeoService.GeoErrorCode.Timeout => "Timed out getting a location fix. Move near a window or try again.",
-                GeoService.GeoErrorCode.Unsupported => "This browser does not support the Geolocation API.",
-                _ => $"Location error: {result.ErrorMessage ?? "Unknown error."}"
-            };
-            _loading = false;
-            StateHasChanged();
-            return;
-        }
-
-        _hasRealFix = true;
-        _error = null;
-        _meLat = result.Position.Latitude;
-        _meLng = result.Position.Longitude;
-        _accuracy = Math.Round(result.Position.AccuracyMeters);
-        _pinLat = _meLat; _pinLng = _meLng;
-
-        await JS.InvokeVoidAsync("mapInterop.setView", _meLat, _meLng);
-        UpdateDistance();
-        _loading = false;
-        StateHasChanged();
-    }
-
-    private async Task CenterOnMe()
-    {
-        var result = await Geo.TryGetCurrentPositionAsync(timeoutMs: 8000, highAccuracy: true);
-        if (!result.IsSuccess || result.Position is null) { _submitMsg = "No GPS fix available."; return; }
-
-        _hasRealFix = true;
-        _meLat = result.Position.Latitude; _meLng = result.Position.Longitude; _accuracy = Math.Round(result.Position.AccuracyMeters);
-        await JS.InvokeVoidAsync("mapInterop.setView", _meLat, _meLng);
-        UpdateDistance();
-    }
-
-    private async Task SetPinToMyLocationAndView()
-    {
-        var result = await Geo.TryGetCurrentPositionAsync(timeoutMs: 8000, highAccuracy: true);
-        if (!result.IsSuccess || result.Position is null) { _submitMsg = "No GPS fix available."; return; }
-
-        _hasRealFix = true;
-        _pinLat = result.Position.Latitude; _pinLng = result.Position.Longitude;
-        await JS.InvokeVoidAsync("mapInterop.setView", _pinLat, _pinLng);
-        UpdateDistance();
     }
 
     private void UpdateDistance()
@@ -241,48 +219,166 @@ else
         _distanceMeters = GeoService.HaversineMeters(_meLat, _meLng, _pinLat, _pinLng);
     }
 
-    // Must be on-site AND have a real GPS fix
-    private bool CanSend => _hasRealFix && _distanceMeters is not null && _distanceMeters <= _maxAllowedMeters;
+    private bool CanSend =>
+        _hasRealFix &&
+        _distanceMeters is not null &&
+        _distanceMeters <= _maxAllowedMeters &&
+        (!_onRoadCheckEnabled || _onRoad == true);
+
+    private async Task VerifyIfOnRoad()
+    {
+        _verifyingRoad = true;
+        _onRoad = null;
+        StateHasChanged();
+
+        try
+        {
+            var res = await Verify.VerifyIfOnRoadAsync(_pinLat, _pinLng);
+            _onRoad = res.IsOnRoad;
+        }
+        catch
+        {
+            _onRoad = null;
+        }
+        finally
+        {
+            _verifyingRoad = false;
+            StateHasChanged();
+        }
+    }
 
     private string BuildReportText()
     {
         var maps = $"https://maps.google.com/?q={_pinLat:F6},{_pinLng:F6}";
         var note = string.IsNullOrWhiteSpace(_note) ? "" : $"Note: {_note}\n";
+        var road = _onRoad == true ? "On a road (verified)" :
+                    _onRoad == false ? "Off-road" : "Road status unknown";
         return $"EMERGENCY: Highway accident reported.\n" +
                $"Pinned Location: {_pinLat:F6}, {_pinLng:F6}\n" +
                $"Reporter GPS: {_meLat:F6}, {_meLng:F6} (±{_accuracy} m)\n" +
                $"{note}" +
+               $"Road Status: {road}\n" +
                $"Map: {maps}\n" +
                $"Time (UTC): {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}";
     }
 
-    private async Task Call112()
+    private async Task CallEmergency()
     {
-        if (!CanSend) { _submitMsg = "You must be at the pinned location (with a valid GPS fix) to call from this screen."; return; }
-        await JS.InvokeVoidAsync("shareInterop.openUrl", "tel:112");
+        if (!CanSend)
+        {
+            _submitMsg = "You must be on a verified road and near the pinned location.";
+            return;
+        }
+        await JS.InvokeVoidAsync("shareInterop.openUrl", $"tel:{_phone}");
     }
 
     private async Task SendSms()
     {
-        if (!CanSend) { _submitMsg = "You must be at the pinned location (with a valid GPS fix) to send."; return; }
+        if (!CanSend)
+        {
+            _submitMsg = "You must be on a verified road and near the pinned location.";
+            return;
+        }
         var body = Uri.EscapeDataString(BuildReportText());
-        var url = $"sms:?&body={body}";
+        var url = $"sms:{_phone}?&body={body}";
         await JS.InvokeVoidAsync("shareInterop.openUrl", url);
-        _submitMsg = "Opened your SMS app with the message prefilled. Send it to 112 or local police.";
+        _submitMsg = $"Opened SMS app prefilled to {_phone}.";
+    }
+
+    private static string NormalizeWhatsApp(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) return string.Empty;
+        var sb = new System.Text.StringBuilder(raw.Length);
+        foreach (var ch in raw)
+            if (char.IsDigit(ch)) sb.Append(ch);
+        return sb.ToString();
     }
 
     private async Task SendWhatsApp()
     {
-        if (!CanSend) { _submitMsg = "You must be at the pinned location (with a valid GPS fix) to send."; return; }
+        if (!_enableWhatsApp || string.IsNullOrWhiteSpace(_whatsApp))
+        {
+            _submitMsg = "WhatsApp not configured.";
+            return;
+        }
+        if (!CanSend)
+        {
+            _submitMsg = "You must be on a verified road and near the pinned location.";
+            return;
+        }
+
+        var number = NormalizeWhatsApp(_whatsApp);
+        if (string.IsNullOrWhiteSpace(number))
+        {
+            _submitMsg = "WhatsApp number is invalid.";
+            return;
+        }
+
         var text = Uri.EscapeDataString(BuildReportText());
-        var url = $"https://wa.me/?text={text}";
+        var url = $"https://wa.me/{number}?text={text}";
         await JS.InvokeVoidAsync("shareInterop.openUrl", url);
-        _submitMsg = "Opened WhatsApp share. Choose recipient (e.g., emergency contact).";
+        _submitMsg = "Opened WhatsApp share.";
+    }
+
+    private async Task SendEmail()
+    {
+        if (!_enableEmail || string.IsNullOrWhiteSpace(_email))
+        {
+            _submitMsg = "Email not configured.";
+            return;
+        }
+        var subject = Uri.EscapeDataString("EMERGENCY: Highway accident");
+        var body = Uri.EscapeDataString(BuildReportText());
+        var url = $"mailto:{_email}?subject={subject}&body={body}";
+        await JS.InvokeVoidAsync("shareInterop.openUrl", url);
+        _submitMsg = $"Opened email composer to {_email}.";
     }
 
     private async Task CopyReport()
     {
         var ok = await JS.InvokeAsync<bool>("shareInterop.copyText", BuildReportText());
         _submitMsg = ok ? "Copied report text to clipboard." : "Copy failed.";
+    }
+
+    private async Task CenterOnMe()
+    {
+        var result = await Geo.TryGetCurrentPositionAsync(timeoutMs: 8000, highAccuracy: true);
+        if (!result.IsSuccess || result.Position is null)
+        {
+            _submitMsg = "No GPS fix available.";
+            return;
+        }
+        _hasRealFix = true;
+        _meLat = result.Position.Latitude;
+        _meLng = result.Position.Longitude;
+        _accuracy = Math.Round(result.Position.AccuracyMeters);
+        await JS.InvokeVoidAsync("mapInterop.setView", _meLat, _meLng);
+        UpdateDistance();
+        if (_onRoadCheckEnabled)
+            await VerifyIfOnRoad();
+    }
+
+    private async Task SetPinToMyLocationAndView()
+    {
+        var result = await Geo.TryGetCurrentPositionAsync(timeoutMs: 8000, highAccuracy: true);
+        if (!result.IsSuccess || result.Position is null)
+        {
+            _submitMsg = "No GPS fix available.";
+            return;
+        }
+        _hasRealFix = true;
+        _pinLat = result.Position.Latitude;
+        _pinLng = result.Position.Longitude;
+        await JS.InvokeVoidAsync("mapInterop.setView", _pinLat, _pinLng);
+        UpdateDistance();
+        if (_onRoadCheckEnabled)
+            await VerifyIfOnRoad();
+    }
+
+    private async Task Retry() => await FirstLoad();
+
+    public void Dispose()
+    {
+        _selfRef?.Dispose();
     }
 }

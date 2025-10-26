@@ -395,8 +395,6 @@ MigrationBackup/
 # Custom rules
 # Ignore only zip files from the folder where this .gitignore exists
 /*.zip
-/WcfTestHarness/SoapLogs/*.xml
-/WcfHarness.LoadTests/Reports/
 # OS cruft
 .DS_Store
 Thumbs.db

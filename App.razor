@@ -4,6 +4,7 @@
 <Router AppAssembly="@typeof(App).Assembly"
         OnNavigateAsync="HandleNavigateAsync">
 
+    <!-- When a route is found -->
     <Found Context="routeData">
         @if (_isNavigating)
         {
@@ -15,6 +16,7 @@
             </div>
         }
 
+        <!-- Error boundary wraps all routed components -->
         <ErrorBoundary @ref="_errorBoundary">
             <ChildContent>
                 <RouteView RouteData="routeData" DefaultLayout="@typeof(MainLayout)" />
@@ -33,7 +35,7 @@
                             <a class="btn btn-outline-secondary" href="/">Go Home</a>
                         </div>
                         <div class="mt-2 small text-muted">
-                            If the error persists, refresh the browser (Ctrl/Cmd + R).
+                            If the error persists, refresh your browser (Ctrl/Cmd + R).
                         </div>
                     </div>
                 </div>
@@ -41,6 +43,7 @@
         </ErrorBoundary>
     </Found>
 
+    <!-- 404 / Not Found route -->
     <NotFound>
         <LayoutView Layout="@typeof(MainLayout)">
             <div class="container py-5 text-center">
@@ -62,7 +65,7 @@
 
     protected override void OnInitialized()
     {
-        // Clear previous error UI when navigating to a new location
+        // Reset error UI when navigating to a new page
         Nav.LocationChanged += (_, __) => _errorBoundary?.Recover();
     }
 
@@ -72,7 +75,9 @@
         {
             _isNavigating = true;
             StateHasChanged();
-            await Task.Yield(); // keeps the progress bar visible briefly
+
+            // Allow the UI to render the progress bar
+            await Task.Yield();
         }
         finally
         {

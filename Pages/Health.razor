@@ -1,7 +1,7 @@
 ﻿@page "/health"
 @inject PinTheHighwayCrash.Services.HealthService HealthSvc
 
-<h1>Environment Health Check</h1>
+<h1 class="mb-4">Environment Health Check</h1>
 
 @if (_loading)
 {
@@ -19,32 +19,35 @@ else if (_report is null)
 }
 else
 {
+    <!-- Overall Status -->
     <div class="mb-3">
-        Overall status:
+        <strong>Overall status:</strong>
         @switch (_report.Overall)
         {
             case PinTheHighwayCrash.Services.HealthService.HealthStatus.Pass:
-                <span class="badge bg-success">PASS</span>
+                <span class="badge bg-success ms-2">PASS</span>
                 break;
             case PinTheHighwayCrash.Services.HealthService.HealthStatus.Warn:
-                <span class="badge bg-warning text-dark">WARN</span>
+                <span class="badge bg-warning text-dark ms-2">WARN</span>
                 break;
             case PinTheHighwayCrash.Services.HealthService.HealthStatus.Fail:
-                <span class="badge bg-danger">FAIL</span>
+                <span class="badge bg-danger ms-2">FAIL</span>
                 break;
             case PinTheHighwayCrash.Services.HealthService.HealthStatus.Info:
-                <span class="badge bg-info text-dark">INFO</span>
+                <span class="badge bg-info text-dark ms-2">INFO</span>
                 break;
             default:
-                <span class="badge bg-secondary">UNKNOWN</span>
+                <span class="badge bg-secondary ms-2">UNKNOWN</span>
                 break;
         }
+
         @if (!string.IsNullOrWhiteSpace(_report.Source))
         {
             <span class="ms-2 small text-muted">(source: @_report.Source)</span>
         }
     </div>
 
+    <!-- Detailed Items -->
     <div class="list-group shadow-sm">
         @foreach (var item in _report.Items)
         {
@@ -83,9 +86,14 @@ else
         }
     </div>
 
-    <div class="d-flex gap-2 mt-3">
-        <button class="btn btn-outline-primary" @onclick="Run">Re-run checks</button>
-        <a class="btn btn-outline-secondary" href="report">Go to Report</a>
+    <!-- Controls -->
+    <div class="d-flex flex-wrap gap-2 mt-4">
+        <button class="btn btn-outline-primary" @onclick="Run">
+            <i class="bi bi-arrow-repeat me-1"></i> Re-run Checks
+        </button>
+        <a class="btn btn-outline-secondary" href="report">
+            <i class="bi bi-flag me-1"></i> Go to Report
+        </a>
     </div>
 }
 
@@ -93,11 +101,15 @@ else
     private bool _loading = true;
     private PinTheHighwayCrash.Services.HealthService.HealthReport? _report;
 
-    protected override async Task OnInitializedAsync() => await Run();
+    protected override async Task OnInitializedAsync()
+    {
+        await Run();
+    }
 
     private async Task Run()
     {
         _loading = true;
+        StateHasChanged(); // refresh spinner immediately
         _report = await HealthSvc.RunSafeAsync(8000);
         _loading = false;
         StateHasChanged();

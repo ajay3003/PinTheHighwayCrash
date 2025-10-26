@@ -1,4 +1,6 @@
+wwwroot\appsettings.json
 wwwroot\css\app.css
 wwwroot\index.html
+wwwroot\js\healthInterop.js
 wwwroot\js\mapInterop.js
 wwwroot\js\shareInterop.js

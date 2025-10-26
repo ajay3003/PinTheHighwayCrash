@@ -3,6 +3,26 @@
   "WorkspaceRootPath": "C:\\Users\\ajaan\\OneDrive - Barne-, ungdoms- og familiedirektoratet\\Dokumenter\\Privat\\KylaProject\\repo\\PinTheHighwayCrash\\PinTheHighwayCrash\\",
   "Documents": [
     {
+      "AbsoluteMoniker": "D:0:0:{2F0C6BE5-3C2E-4F36-8E54-7D6E6B7B9001}|PinTheHighwayCrash.csproj|c:\\users\\ajaan\\onedrive - barne-, ungdoms- og familiedirektoratet\\dokumenter\\privat\\kylaproject\\repo\\pinthehighwaycrash\\pinthehighwaycrash\\wwwroot\\js\\shareinterop.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}",
+      "RelativeMoniker": "D:0:0:{2F0C6BE5-3C2E-4F36-8E54-7D6E6B7B9001}|PinTheHighwayCrash.csproj|solutionrelative:wwwroot\\js\\shareinterop.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{2F0C6BE5-3C2E-4F36-8E54-7D6E6B7B9001}|PinTheHighwayCrash.csproj|c:\\users\\ajaan\\onedrive - barne-, ungdoms- og familiedirektoratet\\dokumenter\\privat\\kylaproject\\repo\\pinthehighwaycrash\\pinthehighwaycrash\\shared\\navmenu.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{2F0C6BE5-3C2E-4F36-8E54-7D6E6B7B9001}|PinTheHighwayCrash.csproj|solutionrelative:shared\\navmenu.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{2F0C6BE5-3C2E-4F36-8E54-7D6E6B7B9001}|PinTheHighwayCrash.csproj|c:\\users\\ajaan\\onedrive - barne-, ungdoms- og familiedirektoratet\\dokumenter\\privat\\kylaproject\\repo\\pinthehighwaycrash\\pinthehighwaycrash\\pages\\diagnostics.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{2F0C6BE5-3C2E-4F36-8E54-7D6E6B7B9001}|PinTheHighwayCrash.csproj|solutionrelative:pages\\diagnostics.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{2F0C6BE5-3C2E-4F36-8E54-7D6E6B7B9001}|PinTheHighwayCrash.csproj|c:\\users\\ajaan\\onedrive - barne-, ungdoms- og familiedirektoratet\\dokumenter\\privat\\kylaproject\\repo\\pinthehighwaycrash\\pinthehighwaycrash\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{2F0C6BE5-3C2E-4F36-8E54-7D6E6B7B9001}|PinTheHighwayCrash.csproj|solutionrelative:program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{2F0C6BE5-3C2E-4F36-8E54-7D6E6B7B9001}|PinTheHighwayCrash.csproj|c:\\users\\ajaan\\onedrive - barne-, ungdoms- og familiedirektoratet\\dokumenter\\privat\\kylaproject\\repo\\pinthehighwaycrash\\pinthehighwaycrash\\wwwroot\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{2F0C6BE5-3C2E-4F36-8E54-7D6E6B7B9001}|PinTheHighwayCrash.csproj|solutionrelative:wwwroot\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+    },
+    {
       "AbsoluteMoniker": "D:0:0:{2F0C6BE5-3C2E-4F36-8E54-7D6E6B7B9001}|PinTheHighwayCrash.csproj|c:\\users\\ajaan\\onedrive - barne-, ungdoms- og familiedirektoratet\\dokumenter\\privat\\kylaproject\\repo\\pinthehighwaycrash\\pinthehighwaycrash\\services\\verificationservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{2F0C6BE5-3C2E-4F36-8E54-7D6E6B7B9001}|PinTheHighwayCrash.csproj|solutionrelative:services\\verificationservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
@@ -17,10 +37,6 @@
     {
       "AbsoluteMoniker": "D:0:0:{2F0C6BE5-3C2E-4F36-8E54-7D6E6B7B9001}|PinTheHighwayCrash.csproj|c:\\users\\ajaan\\onedrive - barne-, ungdoms- og familiedirektoratet\\dokumenter\\privat\\kylaproject\\repo\\pinthehighwaycrash\\pinthehighwaycrash\\app.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
       "RelativeMoniker": "D:0:0:{2F0C6BE5-3C2E-4F36-8E54-7D6E6B7B9001}|PinTheHighwayCrash.csproj|solutionrelative:app.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{2F0C6BE5-3C2E-4F36-8E54-7D6E6B7B9001}|PinTheHighwayCrash.csproj|c:\\users\\ajaan\\onedrive - barne-, ungdoms- og familiedirektoratet\\dokumenter\\privat\\kylaproject\\repo\\pinthehighwaycrash\\pinthehighwaycrash\\shared\\navmenu.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
-      "RelativeMoniker": "D:0:0:{2F0C6BE5-3C2E-4F36-8E54-7D6E6B7B9001}|PinTheHighwayCrash.csproj|solutionrelative:shared\\navmenu.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{2F0C6BE5-3C2E-4F36-8E54-7D6E6B7B9001}|PinTheHighwayCrash.csproj|c:\\users\\ajaan\\onedrive - barne-, ungdoms- og familiedirektoratet\\dokumenter\\privat\\kylaproject\\repo\\pinthehighwaycrash\\pinthehighwaycrash\\shared\\mainlayout.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
@@ -55,24 +71,12 @@
       "RelativeMoniker": "D:0:0:{2F0C6BE5-3C2E-4F36-8E54-7D6E6B7B9001}|PinTheHighwayCrash.csproj|solutionrelative:services\\healthservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{2F0C6BE5-3C2E-4F36-8E54-7D6E6B7B9001}|PinTheHighwayCrash.csproj|c:\\users\\ajaan\\onedrive - barne-, ungdoms- og familiedirektoratet\\dokumenter\\privat\\kylaproject\\repo\\pinthehighwaycrash\\pinthehighwaycrash\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{2F0C6BE5-3C2E-4F36-8E54-7D6E6B7B9001}|PinTheHighwayCrash.csproj|solutionrelative:program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{2F0C6BE5-3C2E-4F36-8E54-7D6E6B7B9001}|PinTheHighwayCrash.csproj|c:\\users\\ajaan\\onedrive - barne-, ungdoms- og familiedirektoratet\\dokumenter\\privat\\kylaproject\\repo\\pinthehighwaycrash\\pinthehighwaycrash\\wwwroot\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
-      "RelativeMoniker": "D:0:0:{2F0C6BE5-3C2E-4F36-8E54-7D6E6B7B9001}|PinTheHighwayCrash.csproj|solutionrelative:wwwroot\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
-    },
-    {
       "AbsoluteMoniker": "D:0:0:{2F0C6BE5-3C2E-4F36-8E54-7D6E6B7B9001}|PinTheHighwayCrash.csproj|c:\\users\\ajaan\\onedrive - barne-, ungdoms- og familiedirektoratet\\dokumenter\\privat\\kylaproject\\repo\\pinthehighwaycrash\\pinthehighwaycrash\\pinthehighwaycrash.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
       "RelativeMoniker": "D:0:0:{2F0C6BE5-3C2E-4F36-8E54-7D6E6B7B9001}|PinTheHighwayCrash.csproj|solutionrelative:pinthehighwaycrash.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
     },
     {
       "AbsoluteMoniker": "D:0:0:{2F0C6BE5-3C2E-4F36-8E54-7D6E6B7B9001}|PinTheHighwayCrash.csproj|c:\\users\\ajaan\\onedrive - barne-, ungdoms- og familiedirektoratet\\dokumenter\\privat\\kylaproject\\repo\\pinthehighwaycrash\\pinthehighwaycrash\\models\\options.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{2F0C6BE5-3C2E-4F36-8E54-7D6E6B7B9001}|PinTheHighwayCrash.csproj|solutionrelative:models\\options.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{2F0C6BE5-3C2E-4F36-8E54-7D6E6B7B9001}|PinTheHighwayCrash.csproj|c:\\users\\ajaan\\onedrive - barne-, ungdoms- og familiedirektoratet\\dokumenter\\privat\\kylaproject\\repo\\pinthehighwaycrash\\pinthehighwaycrash\\wwwroot\\js\\shareinterop.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}",
-      "RelativeMoniker": "D:0:0:{2F0C6BE5-3C2E-4F36-8E54-7D6E6B7B9001}|PinTheHighwayCrash.csproj|solutionrelative:wwwroot\\js\\shareinterop.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{2F0C6BE5-3C2E-4F36-8E54-7D6E6B7B9001}|PinTheHighwayCrash.csproj|c:\\users\\ajaan\\onedrive - barne-, ungdoms- og familiedirektoratet\\dokumenter\\privat\\kylaproject\\repo\\pinthehighwaycrash\\pinthehighwaycrash\\_imports.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
@@ -98,72 +102,33 @@
             },
             {
               "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "Diagnostics.razor",
+              "DocumentMoniker": "C:\\Users\\ajaan\\OneDrive - Barne-, ungdoms- og familiedirektoratet\\Dokumenter\\Privat\\KylaProject\\repo\\PinTheHighwayCrash\\PinTheHighwayCrash\\Pages\\Diagnostics.razor",
+              "RelativeDocumentMoniker": "Pages\\Diagnostics.razor",
+              "ToolTip": "C:\\Users\\ajaan\\OneDrive - Barne-, ungdoms- og familiedirektoratet\\Dokumenter\\Privat\\KylaProject\\repo\\PinTheHighwayCrash\\PinTheHighwayCrash\\Pages\\Diagnostics.razor",
+              "RelativeToolTip": "Pages\\Diagnostics.razor",
+              "ViewState": "AgIAAOEAAAAAAAAAAAAiwAYBAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2025-10-26T17:58:15.042Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
               "DocumentIndex": 1,
-              "Title": "Report.razor",
-              "DocumentMoniker": "C:\\Users\\ajaan\\OneDrive - Barne-, ungdoms- og familiedirektoratet\\Dokumenter\\Privat\\KylaProject\\repo\\PinTheHighwayCrash\\PinTheHighwayCrash\\Pages\\Report.razor",
-              "RelativeDocumentMoniker": "Pages\\Report.razor",
-              "ToolTip": "C:\\Users\\ajaan\\OneDrive - Barne-, ungdoms- og familiedirektoratet\\Dokumenter\\Privat\\KylaProject\\repo\\PinTheHighwayCrash\\PinTheHighwayCrash\\Pages\\Report.razor",
-              "RelativeToolTip": "Pages\\Report.razor",
-              "ViewState": "AgIAAFsBAAAAAAAAAAAiwIABAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
-              "WhenOpened": "2025-10-26T14:42:06.379Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 7,
-              "Title": "healthInterop.js",
-              "DocumentMoniker": "C:\\Users\\ajaan\\OneDrive - Barne-, ungdoms- og familiedirektoratet\\Dokumenter\\Privat\\KylaProject\\repo\\PinTheHighwayCrash\\PinTheHighwayCrash\\wwwroot\\js\\healthInterop.js",
-              "RelativeDocumentMoniker": "wwwroot\\js\\healthInterop.js",
-              "ToolTip": "C:\\Users\\ajaan\\OneDrive - Barne-, ungdoms- og familiedirektoratet\\Dokumenter\\Privat\\KylaProject\\repo\\PinTheHighwayCrash\\PinTheHighwayCrash\\wwwroot\\js\\healthInterop.js",
-              "RelativeToolTip": "wwwroot\\js\\healthInterop.js",
-              "ViewState": "AgIAAAQBAAAAAAAAAAAiwCkBAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001646|",
-              "WhenOpened": "2025-10-26T14:53:44.175Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 6,
-              "Title": "mapInterop.js",
-              "DocumentMoniker": "C:\\Users\\ajaan\\OneDrive - Barne-, ungdoms- og familiedirektoratet\\Dokumenter\\Privat\\KylaProject\\repo\\PinTheHighwayCrash\\PinTheHighwayCrash\\wwwroot\\js\\mapInterop.js",
-              "RelativeDocumentMoniker": "wwwroot\\js\\mapInterop.js",
-              "ToolTip": "C:\\Users\\ajaan\\OneDrive - Barne-, ungdoms- og familiedirektoratet\\Dokumenter\\Privat\\KylaProject\\repo\\PinTheHighwayCrash\\PinTheHighwayCrash\\wwwroot\\js\\mapInterop.js",
-              "RelativeToolTip": "wwwroot\\js\\mapInterop.js",
-              "ViewState": "AgIAAJsAAAAAAAAAAAAiwMAAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001646|",
-              "WhenOpened": "2025-10-26T14:39:54.831Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 5,
-              "Title": "MainLayout.razor",
-              "DocumentMoniker": "C:\\Users\\ajaan\\OneDrive - Barne-, ungdoms- og familiedirektoratet\\Dokumenter\\Privat\\KylaProject\\repo\\PinTheHighwayCrash\\PinTheHighwayCrash\\Shared\\MainLayout.razor",
-              "RelativeDocumentMoniker": "Shared\\MainLayout.razor",
-              "ToolTip": "C:\\Users\\ajaan\\OneDrive - Barne-, ungdoms- og familiedirektoratet\\Dokumenter\\Privat\\KylaProject\\repo\\PinTheHighwayCrash\\PinTheHighwayCrash\\Shared\\MainLayout.razor",
-              "RelativeToolTip": "Shared\\MainLayout.razor",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAACIAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
-              "WhenOpened": "2025-10-26T15:02:24.723Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 4,
               "Title": "NavMenu.razor",
               "DocumentMoniker": "C:\\Users\\ajaan\\OneDrive - Barne-, ungdoms- og familiedirektoratet\\Dokumenter\\Privat\\KylaProject\\repo\\PinTheHighwayCrash\\PinTheHighwayCrash\\Shared\\NavMenu.razor",
               "RelativeDocumentMoniker": "Shared\\NavMenu.razor",
               "ToolTip": "C:\\Users\\ajaan\\OneDrive - Barne-, ungdoms- og familiedirektoratet\\Dokumenter\\Privat\\KylaProject\\repo\\PinTheHighwayCrash\\PinTheHighwayCrash\\Shared\\NavMenu.razor",
               "RelativeToolTip": "Shared\\NavMenu.razor",
-              "ViewState": "AgIAACoAAAAAAAAAAAAiwE8AAAAAAAAAAAAAAA==",
+              "ViewState": "AgIAADwAAAAAAAAAAAAiwGEAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
               "WhenOpened": "2025-10-26T14:55:54.616Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 3,
+              "DocumentIndex": 8,
               "Title": "App.razor",
               "DocumentMoniker": "C:\\Users\\ajaan\\OneDrive - Barne-, ungdoms- og familiedirektoratet\\Dokumenter\\Privat\\KylaProject\\repo\\PinTheHighwayCrash\\PinTheHighwayCrash\\App.razor",
               "RelativeDocumentMoniker": "App.razor",
@@ -171,12 +136,11 @@
               "RelativeToolTip": "App.razor",
               "ViewState": "AgIAADUAAAAAAAAAAAAiwFoAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
-              "WhenOpened": "2025-10-26T14:59:51.517Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-10-26T14:59:51.517Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
+              "DocumentIndex": 7,
               "Title": "index.html",
               "DocumentMoniker": "C:\\Users\\ajaan\\OneDrive - Barne-, ungdoms- og familiedirektoratet\\Dokumenter\\Privat\\KylaProject\\repo\\PinTheHighwayCrash\\PinTheHighwayCrash\\wwwroot\\index.html",
               "RelativeDocumentMoniker": "wwwroot\\index.html",
@@ -184,25 +148,111 @@
               "RelativeToolTip": "wwwroot\\index.html",
               "ViewState": "AgIAADIAAAAAAAAAAADwv1cAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001512|",
-              "WhenOpened": "2025-10-26T15:02:15.58Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-10-26T15:02:15.58Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 0,
+              "DocumentIndex": 5,
               "Title": "VerificationService.cs",
               "DocumentMoniker": "C:\\Users\\ajaan\\OneDrive - Barne-, ungdoms- og familiedirektoratet\\Dokumenter\\Privat\\KylaProject\\repo\\PinTheHighwayCrash\\PinTheHighwayCrash\\Services\\VerificationService.cs",
               "RelativeDocumentMoniker": "Services\\VerificationService.cs",
               "ToolTip": "C:\\Users\\ajaan\\OneDrive - Barne-, ungdoms- og familiedirektoratet\\Dokumenter\\Privat\\KylaProject\\repo\\PinTheHighwayCrash\\PinTheHighwayCrash\\Services\\VerificationService.cs",
               "RelativeToolTip": "Services\\VerificationService.cs",
-              "ViewState": "AgIAACwAAAAAAAAAAAAiwFEAAAAAAAAAAAAAAA==",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAFEAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-10-26T16:45:03.12Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 8,
+              "DocumentIndex": 4,
+              "Title": "appsettings.json",
+              "DocumentMoniker": "C:\\Users\\ajaan\\OneDrive - Barne-, ungdoms- og familiedirektoratet\\Dokumenter\\Privat\\KylaProject\\repo\\PinTheHighwayCrash\\PinTheHighwayCrash\\wwwroot\\appsettings.json",
+              "RelativeDocumentMoniker": "wwwroot\\appsettings.json",
+              "ToolTip": "C:\\Users\\ajaan\\OneDrive - Barne-, ungdoms- og familiedirektoratet\\Dokumenter\\Privat\\KylaProject\\repo\\PinTheHighwayCrash\\PinTheHighwayCrash\\wwwroot\\appsettings.json",
+              "RelativeToolTip": "wwwroot\\appsettings.json",
+              "ViewState": "AgIAABUAAAAAAAAAAAAiwDIAAAADAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2025-10-26T16:43:00.176Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "Program.cs",
+              "DocumentMoniker": "C:\\Users\\ajaan\\OneDrive - Barne-, ungdoms- og familiedirektoratet\\Dokumenter\\Privat\\KylaProject\\repo\\PinTheHighwayCrash\\PinTheHighwayCrash\\Program.cs",
+              "RelativeDocumentMoniker": "Program.cs",
+              "ToolTip": "C:\\Users\\ajaan\\OneDrive - Barne-, ungdoms- og familiedirektoratet\\Dokumenter\\Privat\\KylaProject\\repo\\PinTheHighwayCrash\\PinTheHighwayCrash\\Program.cs",
+              "RelativeToolTip": "Program.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAADwAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-26T14:54:45.479Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "shareInterop.js",
+              "DocumentMoniker": "C:\\Users\\ajaan\\OneDrive - Barne-, ungdoms- og familiedirektoratet\\Dokumenter\\Privat\\KylaProject\\repo\\PinTheHighwayCrash\\PinTheHighwayCrash\\wwwroot\\js\\shareInterop.js",
+              "RelativeDocumentMoniker": "wwwroot\\js\\shareInterop.js",
+              "ToolTip": "C:\\Users\\ajaan\\OneDrive - Barne-, ungdoms- og familiedirektoratet\\Dokumenter\\Privat\\KylaProject\\repo\\PinTheHighwayCrash\\PinTheHighwayCrash\\wwwroot\\js\\shareInterop.js",
+              "RelativeToolTip": "wwwroot\\js\\shareInterop.js",
+              "ViewState": "AgIAAAMAAAAAAAAAAAAAAAcAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001646|",
+              "WhenOpened": "2025-10-26T15:12:52.434Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 9,
+              "Title": "MainLayout.razor",
+              "DocumentMoniker": "C:\\Users\\ajaan\\OneDrive - Barne-, ungdoms- og familiedirektoratet\\Dokumenter\\Privat\\KylaProject\\repo\\PinTheHighwayCrash\\PinTheHighwayCrash\\Shared\\MainLayout.razor",
+              "RelativeDocumentMoniker": "Shared\\MainLayout.razor",
+              "ToolTip": "C:\\Users\\ajaan\\OneDrive - Barne-, ungdoms- og familiedirektoratet\\Dokumenter\\Privat\\KylaProject\\repo\\PinTheHighwayCrash\\PinTheHighwayCrash\\Shared\\MainLayout.razor",
+              "RelativeToolTip": "Shared\\MainLayout.razor",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAACIAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2025-10-26T15:02:24.723Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 10,
+              "Title": "mapInterop.js",
+              "DocumentMoniker": "C:\\Users\\ajaan\\OneDrive - Barne-, ungdoms- og familiedirektoratet\\Dokumenter\\Privat\\KylaProject\\repo\\PinTheHighwayCrash\\PinTheHighwayCrash\\wwwroot\\js\\mapInterop.js",
+              "RelativeDocumentMoniker": "wwwroot\\js\\mapInterop.js",
+              "ToolTip": "C:\\Users\\ajaan\\OneDrive - Barne-, ungdoms- og familiedirektoratet\\Dokumenter\\Privat\\KylaProject\\repo\\PinTheHighwayCrash\\PinTheHighwayCrash\\wwwroot\\js\\mapInterop.js",
+              "RelativeToolTip": "wwwroot\\js\\mapInterop.js",
+              "ViewState": "AgIAAJsAAAAAAAAAAAAiwMAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001646|",
+              "WhenOpened": "2025-10-26T14:39:54.831Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 11,
+              "Title": "healthInterop.js",
+              "DocumentMoniker": "C:\\Users\\ajaan\\OneDrive - Barne-, ungdoms- og familiedirektoratet\\Dokumenter\\Privat\\KylaProject\\repo\\PinTheHighwayCrash\\PinTheHighwayCrash\\wwwroot\\js\\healthInterop.js",
+              "RelativeDocumentMoniker": "wwwroot\\js\\healthInterop.js",
+              "ToolTip": "C:\\Users\\ajaan\\OneDrive - Barne-, ungdoms- og familiedirektoratet\\Dokumenter\\Privat\\KylaProject\\repo\\PinTheHighwayCrash\\PinTheHighwayCrash\\wwwroot\\js\\healthInterop.js",
+              "RelativeToolTip": "wwwroot\\js\\healthInterop.js",
+              "ViewState": "AgIAAAQBAAAAAAAAAAAiwCkBAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001646|",
+              "WhenOpened": "2025-10-26T14:53:44.175Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "Report.razor",
+              "DocumentMoniker": "C:\\Users\\ajaan\\OneDrive - Barne-, ungdoms- og familiedirektoratet\\Dokumenter\\Privat\\KylaProject\\repo\\PinTheHighwayCrash\\PinTheHighwayCrash\\Pages\\Report.razor",
+              "RelativeDocumentMoniker": "Pages\\Report.razor",
+              "ToolTip": "C:\\Users\\ajaan\\OneDrive - Barne-, ungdoms- og familiedirektoratet\\Dokumenter\\Privat\\KylaProject\\repo\\PinTheHighwayCrash\\PinTheHighwayCrash\\Pages\\Report.razor",
+              "RelativeToolTip": "Pages\\Report.razor",
+              "ViewState": "AgIAAFsBAAAAAAAAAAAiwIABAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2025-10-26T14:42:06.379Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 12,
               "Title": "app.css",
               "DocumentMoniker": "C:\\Users\\ajaan\\OneDrive - Barne-, ungdoms- og familiedirektoratet\\Dokumenter\\Privat\\KylaProject\\repo\\PinTheHighwayCrash\\PinTheHighwayCrash\\wwwroot\\css\\app.css",
               "RelativeDocumentMoniker": "wwwroot\\css\\app.css",
@@ -210,12 +260,11 @@
               "RelativeToolTip": "wwwroot\\css\\app.css",
               "ViewState": "AgIAAGcBAAAAAAAAAADwv40BAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003000|",
-              "WhenOpened": "2025-10-26T15:16:18.946Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-10-26T15:16:18.946Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 9,
+              "DocumentIndex": 13,
               "Title": "Index.razor",
               "DocumentMoniker": "C:\\Users\\ajaan\\OneDrive - Barne-, ungdoms- og familiedirektoratet\\Dokumenter\\Privat\\KylaProject\\repo\\PinTheHighwayCrash\\PinTheHighwayCrash\\Pages\\Index.razor",
               "RelativeDocumentMoniker": "Pages\\Index.razor",
@@ -223,12 +272,11 @@
               "RelativeToolTip": "Pages\\Index.razor",
               "ViewState": "AgIAACUAAAAAAAAAAAAiwEoAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
-              "WhenOpened": "2025-10-26T14:48:05.844Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-10-26T14:48:05.844Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 10,
+              "DocumentIndex": 14,
               "Title": "Health.razor",
               "DocumentMoniker": "C:\\Users\\ajaan\\OneDrive - Barne-, ungdoms- og familiedirektoratet\\Dokumenter\\Privat\\KylaProject\\repo\\PinTheHighwayCrash\\PinTheHighwayCrash\\Pages\\Health.razor",
               "RelativeDocumentMoniker": "Pages\\Health.razor",
@@ -236,12 +284,11 @@
               "RelativeToolTip": "Pages\\Health.razor",
               "ViewState": "AgIAAFAAAAAAAAAAAAAiwHUAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
-              "WhenOpened": "2025-10-26T14:55:25.92Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-10-26T14:55:25.92Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 11,
+              "DocumentIndex": 15,
               "Title": "GeoService.cs",
               "DocumentMoniker": "C:\\Users\\ajaan\\OneDrive - Barne-, ungdoms- og familiedirektoratet\\Dokumenter\\Privat\\KylaProject\\repo\\PinTheHighwayCrash\\PinTheHighwayCrash\\Services\\GeoService.cs",
               "RelativeDocumentMoniker": "Services\\GeoService.cs",
@@ -249,12 +296,11 @@
               "RelativeToolTip": "Services\\GeoService.cs",
               "ViewState": "AgIAAKgAAAAAAAAAAAAiwM0AAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-10-26T14:37:44.638Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-10-26T14:37:44.638Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 12,
+              "DocumentIndex": 16,
               "Title": "HealthService.cs",
               "DocumentMoniker": "C:\\Users\\ajaan\\OneDrive - Barne-, ungdoms- og familiedirektoratet\\Dokumenter\\Privat\\KylaProject\\repo\\PinTheHighwayCrash\\PinTheHighwayCrash\\Services\\HealthService.cs",
               "RelativeDocumentMoniker": "Services\\HealthService.cs",
@@ -262,51 +308,23 @@
               "RelativeToolTip": "Services\\HealthService.cs",
               "ViewState": "AgIAAKEAAAAAAAAAAAAiwMYAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-10-26T14:54:29.042Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-10-26T14:54:29.042Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 13,
-              "Title": "Program.cs",
-              "DocumentMoniker": "C:\\Users\\ajaan\\OneDrive - Barne-, ungdoms- og familiedirektoratet\\Dokumenter\\Privat\\KylaProject\\repo\\PinTheHighwayCrash\\PinTheHighwayCrash\\Program.cs",
-              "RelativeDocumentMoniker": "Program.cs",
-              "ToolTip": "C:\\Users\\ajaan\\OneDrive - Barne-, ungdoms- og familiedirektoratet\\Dokumenter\\Privat\\KylaProject\\repo\\PinTheHighwayCrash\\PinTheHighwayCrash\\Program.cs",
-              "RelativeToolTip": "Program.cs",
-              "ViewState": "AgIAABcAAAAAAAAAAAAiwDwAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-10-26T14:54:45.479Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 14,
-              "Title": "appsettings.json",
-              "DocumentMoniker": "C:\\Users\\ajaan\\OneDrive - Barne-, ungdoms- og familiedirektoratet\\Dokumenter\\Privat\\KylaProject\\repo\\PinTheHighwayCrash\\PinTheHighwayCrash\\wwwroot\\appsettings.json",
-              "RelativeDocumentMoniker": "wwwroot\\appsettings.json",
-              "ToolTip": "C:\\Users\\ajaan\\OneDrive - Barne-, ungdoms- og familiedirektoratet\\Dokumenter\\Privat\\KylaProject\\repo\\PinTheHighwayCrash\\PinTheHighwayCrash\\wwwroot\\appsettings.json",
-              "RelativeToolTip": "wwwroot\\appsettings.json",
-              "ViewState": "AgIAAA8AAAAAAAAAAAAiwDQAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
-              "WhenOpened": "2025-10-26T16:43:00.176Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 15,
-              "Title": "PinTheHighwayCrash",
+              "DocumentIndex": 17,
+              "Title": "PinTheHighwayCrash.csproj",
               "DocumentMoniker": "C:\\Users\\ajaan\\OneDrive - Barne-, ungdoms- og familiedirektoratet\\Dokumenter\\Privat\\KylaProject\\repo\\PinTheHighwayCrash\\PinTheHighwayCrash\\PinTheHighwayCrash.csproj",
               "RelativeDocumentMoniker": "PinTheHighwayCrash.csproj",
               "ToolTip": "C:\\Users\\ajaan\\OneDrive - Barne-, ungdoms- og familiedirektoratet\\Dokumenter\\Privat\\KylaProject\\repo\\PinTheHighwayCrash\\PinTheHighwayCrash\\PinTheHighwayCrash.csproj",
               "RelativeToolTip": "PinTheHighwayCrash.csproj",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
-              "WhenOpened": "2025-10-26T16:43:18.867Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-10-26T16:43:18.867Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 16,
+              "DocumentIndex": 18,
               "Title": "Options.cs",
               "DocumentMoniker": "C:\\Users\\ajaan\\OneDrive - Barne-, ungdoms- og familiedirektoratet\\Dokumenter\\Privat\\KylaProject\\repo\\PinTheHighwayCrash\\PinTheHighwayCrash\\Models\\Options.cs",
               "RelativeDocumentMoniker": "Models\\Options.cs",
@@ -314,25 +332,11 @@
               "RelativeToolTip": "Models\\Options.cs",
               "ViewState": "AgIAACIAAAAAAAAAAAAuwDsAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-10-26T16:43:50.084Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-10-26T16:43:50.084Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 17,
-              "Title": "shareInterop.js",
-              "DocumentMoniker": "C:\\Users\\ajaan\\OneDrive - Barne-, ungdoms- og familiedirektoratet\\Dokumenter\\Privat\\KylaProject\\repo\\PinTheHighwayCrash\\PinTheHighwayCrash\\wwwroot\\js\\shareInterop.js",
-              "RelativeDocumentMoniker": "wwwroot\\js\\shareInterop.js",
-              "ToolTip": "C:\\Users\\ajaan\\OneDrive - Barne-, ungdoms- og familiedirektoratet\\Dokumenter\\Privat\\KylaProject\\repo\\PinTheHighwayCrash\\PinTheHighwayCrash\\wwwroot\\js\\shareInterop.js",
-              "RelativeToolTip": "wwwroot\\js\\shareInterop.js",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAcAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001646|",
-              "WhenOpened": "2025-10-26T15:12:52.434Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 18,
+              "DocumentIndex": 19,
               "Title": "_Imports.razor",
               "DocumentMoniker": "C:\\Users\\ajaan\\OneDrive - Barne-, ungdoms- og familiedirektoratet\\Dokumenter\\Privat\\KylaProject\\repo\\PinTheHighwayCrash\\PinTheHighwayCrash\\_Imports.razor",
               "RelativeDocumentMoniker": "_Imports.razor",
@@ -340,20 +344,18 @@
               "RelativeToolTip": "_Imports.razor",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
-              "WhenOpened": "2025-10-26T15:00:41.929Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-10-26T15:00:41.929Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 19,
+              "DocumentIndex": 20,
               "Title": "PinTheHighwayCrash",
               "DocumentMoniker": "C:\\Users\\ajaan\\OneDrive - Barne-, ungdoms- og familiedirektoratet\\Dokumenter\\Privat\\KylaProject\\repo\\PinTheHighwayCrash\\PinTheHighwayCrash\\PinTheHighwayCrash.csproj",
               "RelativeDocumentMoniker": "PinTheHighwayCrash.csproj",
               "ToolTip": "C:\\Users\\ajaan\\OneDrive - Barne-, ungdoms- og familiedirektoratet\\Dokumenter\\Privat\\KylaProject\\repo\\PinTheHighwayCrash\\PinTheHighwayCrash\\PinTheHighwayCrash.csproj",
               "RelativeToolTip": "PinTheHighwayCrash.csproj",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
-              "WhenOpened": "2025-10-26T14:30:43.099Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-10-26T14:30:43.099Z"
             }
           ]
         }

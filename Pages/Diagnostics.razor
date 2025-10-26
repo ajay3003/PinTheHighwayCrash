@@ -1,0 +1,262 @@
+﻿@page "/diag"
+@using Microsoft.Extensions.Options
+@using PinTheHighwayCrash.Models
+@using PinTheHighwayCrash.Services
+@inject IJSRuntime JS
+@inject HealthService Health
+@inject GeoService Geo
+@inject VerificationService Verify
+@inject IOptions<EmergencyOptions> Emergency
+@inject IOptions<GeoOptions> GeoOpt
+@inject IOptions<MapOptions> MapOpt
+@inject IOptions<FeatureFlags> Flags
+
+<h1>Diagnostics</h1>
+
+@if (!Flags.Value.ShowDebugPanel)
+{
+    <div class="alert alert-warning mt-3">
+        <strong>Diagnostics disabled.</strong>
+        Enable it by setting <code>FeatureFlags.ShowDebugPanel</code> to <code>true</code> in <code>wwwroot/appsettings.json</code>.
+    </div>
+}
+else if (_loading)
+{
+    <div class="d-flex align-items-center gap-2">
+        <div class="spinner-border spinner-border-sm text-primary" role="status" aria-hidden="true"></div>
+        <span>Collecting info…</span>
+    </div>
+}
+else
+{
+    <!-- Environment / Health -->
+    <div class="container-card mb-4">
+        <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Environment Health</h5>
+            <button class="btn btn-sm btn-outline-primary" @onclick="RunHealth">Re-run</button>
+        </div>
+        @if (_health is null)
+        {
+            <div class="alert alert-warning mt-3">No health report.</div>
+        }
+        else
+        {
+            <div class="small text-muted mt-1">Overall: @_health.Overall (@_health.Source)</div>
+            <div class="list-group mt-3">
+                @foreach (var it in _health.Items)
+                {
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between">
+                            <strong>@it.Name</strong>
+                            <span class="badge @(it.Status switch {
+                                HealthService.HealthStatus.Pass => "bg-success",
+                                HealthService.HealthStatus.Warn => "bg-warning text-dark",
+                                HealthService.HealthStatus.Fail => "bg-danger",
+                                HealthService.HealthStatus.Info => "bg-info text-dark",
+                                _ => "bg-secondary"
+                            })">@it.Status.ToString().ToUpper()</span>
+                        </div>
+                        @if (!string.IsNullOrWhiteSpace(it.Detail))
+                        {
+                            <div class="small text-muted mt-1">@it.Detail</div>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(it.Fix))
+                        {
+                            <div class="mt-1"><em>Fix:</em> @it.Fix</div>
+                        }
+                    </div>
+                }
+            </div>
+        }
+    </div>
+
+    <!-- Config snapshot -->
+    <div class="container-card mb-4">
+        <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Configuration Snapshot (appsettings)</h5>
+            <button class="btn btn-sm btn-outline-secondary" @onclick="ReloadConfig">Reload</button>
+        </div>
+
+        <div class="row mt-3 g-3">
+            <div class="col-12 col-lg-4">
+                <h6>Emergency</h6>
+                <ul class="small mb-0">
+                    <li>Country: <code>@Emergency.Value.Country</code></li>
+                    <li>Phone: <code>@Emergency.Value.Phone</code></li>
+                    <li>WhatsApp: <code>@(Emergency.Value.WhatsAppNumber ?? "—")</code></li>
+                    <li>Email: <code>@(Emergency.Value.Email ?? "—")</code></li>
+                    <li>Enable: Call=@Emergency.Value.EnableCall, SMS=@Emergency.Value.EnableSms, WA=@Emergency.Value.EnableWhatsApp, Email=@Emergency.Value.EnableEmail</li>
+                </ul>
+            </div>
+            <div class="col-12 col-lg-4">
+                <h6>Geo</h6>
+                <ul class="small mb-0">
+                    <li>MaxDistanceMeters: <code>@GeoOpt.Value.MaxDistanceMeters</code></li>
+                    <li>MinAccuracyMeters: <code>@GeoOpt.Value.MinAccuracyMeters</code></li>
+                    <li>TimeoutMs: <code>@GeoOpt.Value.GeolocationTimeoutMs</code></li>
+                    <li>OnRoad: Enabled=@GeoOpt.Value.OnRoadVerification.Enabled, Provider=<code>@GeoOpt.Value.OnRoadVerification.Provider</code></li>
+                </ul>
+            </div>
+            <div class="col-12 col-lg-4">
+                <h6>Map</h6>
+                <ul class="small mb-0">
+                    <li>Fallback: <code>@MapOpt.Value.FallbackLat</code>, <code>@MapOpt.Value.FallbackLng</code></li>
+                    <li>TileUrl: <code>@MapOpt.Value.TileUrl</code></li>
+                    <li>InitialZoom: <code>@MapOpt.Value.InitialZoom</code></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Interop / JS tests -->
+    <div class="container-card mb-4">
+        <h5>JS / Interop Tests</h5>
+
+        <div class="d-flex flex-wrap gap-2 mt-2">
+            <button class="btn btn-outline-primary" @onclick="CheckJsGlobals">Check JS globals</button>
+            <button class="btn btn-outline-success" @onclick="InitTestMap">Init test map</button>
+            <button class="btn btn-outline-secondary" @onclick="GeolocateNow">Geolocate now</button>
+            <button class="btn btn-outline-info" @onclick="ReverseGeocodeNow">Reverse-geocode (Nominatim)</button>
+            <button class="btn btn-outline-danger" @onclick="DisposeTestMap">Dispose test map</button>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(_diagLog))
+        {
+            <pre class="mt-3 p-2 border rounded bg-light" style="white-space:pre-wrap">@_diagLog</pre>
+        }
+
+        <div id="diag-map" class="mt-3" style="height: 260px; border: 1px solid #dee2e6; border-radius: 10px; overflow: hidden;"></div>
+    </div>
+}
+
+@code {
+    private bool _loading = true;
+    private HealthService.HealthReport? _health;
+    private string _diagLog = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RunHealth();
+        _loading = false;
+    }
+
+    private async Task RunHealth()
+    {
+        _health = await Health.RunSafeAsync(8000);
+    }
+
+    private Task ReloadConfig()
+    {
+        // Options are already bound for WASM; nothing to reload — the button is a UX affordance.
+        return Task.CompletedTask;
+    }
+
+    private async Task<bool> HasGlobal(string name)
+    {
+        // Prefer safe helper (no eval / CSP-friendly)
+        try { return await JS.InvokeAsync<bool>("diagInterop.hasGlobal", name); }
+        catch
+        {
+            // Fallback (only if CSP allows)
+            try { return await JS.InvokeAsync<bool>("eval", $"typeof window['{name}'] !== 'undefined'"); }
+            catch { return false; }
+        }
+    }
+
+    private async Task CheckJsGlobals()
+    {
+        try
+        {
+            var hasL = await HasGlobal("L");
+            var hasMapInterop = await HasGlobal("mapInterop");
+            Append($"L present: {hasL}");
+            Append($"mapInterop present: {hasMapInterop}");
+        }
+        catch (Exception ex)
+        {
+            Append("CheckJsGlobals error: " + ex.Message);
+        }
+    }
+
+    private async Task InitTestMap()
+    {
+        try
+        {
+            var lat = MapOpt.Value.FallbackLat;
+            var lng = MapOpt.Value.FallbackLng;
+            await JS.InvokeVoidAsync("mapInterop.initMap", "diag-map", lat, lng, (object?)null);
+            Append($"Test map initialized at {lat:F5},{lng:F5}");
+        }
+        catch (Exception ex)
+        {
+            Append("InitTestMap error: " + ex.Message);
+        }
+    }
+
+    private async Task DisposeTestMap()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("mapInterop.dispose");
+            Append("Disposed test map.");
+        }
+        catch (Exception ex)
+        {
+            Append("DisposeTestMap error: " + ex.Message);
+        }
+    }
+
+    private async Task GeolocateNow()
+    {
+        try
+        {
+            var r = await Geo.TryGetCurrentPositionAsync(timeoutMs: GeoOpt.Value.GeolocationTimeoutMs, highAccuracy: true);
+            if (r.IsSuccess && r.Position is not null)
+            {
+                Append($"GPS: {r.Position.Latitude:F5},{r.Position.Longitude:F5} (±{r.Position.AccuracyMeters:F0} m)");
+                await JS.InvokeVoidAsync("mapInterop.setView", r.Position.Latitude, r.Position.Longitude);
+            }
+            else
+            {
+                Append($"Geolocate failed: {r.ErrorCode} — {r.ErrorMessage}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Append("GeolocateNow error: " + ex.Message);
+        }
+    }
+
+    private async Task ReverseGeocodeNow()
+    {
+        try
+        {
+            // Use center of the current pin if available; else fallback
+            var pin = await JS.InvokeAsync<object>("mapInterop.getPin");
+            double lat = MapOpt.Value.FallbackLat, lng = MapOpt.Value.FallbackLng;
+
+            if (pin is not null)
+            {
+                // pin is a JS object {lat, lng}; extract via JSON stringify
+                var json = await JS.InvokeAsync<string>("JSON.stringify", pin);
+                var obj = System.Text.Json.JsonDocument.Parse(json).RootElement;
+                if (obj.TryGetProperty("lat", out var le)) lat = le.GetDouble();
+                if (obj.TryGetProperty("lng", out var ge)) lng = ge.GetDouble();
+            }
+
+            var res = await Verify.VerifyIfOnRoadAsync(lat, lng);
+            Append($"Reverse-geocode: onRoad={res.IsOnRoad}; note={res.Note ?? "—"}");
+        }
+        catch (Exception ex)
+        {
+            Append("ReverseGeocodeNow error: " + ex.Message);
+        }
+    }
+
+    private void Append(string line)
+    {
+        if (string.IsNullOrWhiteSpace(_diagLog)) _diagLog = line;
+        else _diagLog += "\n" + line;
+        StateHasChanged();
+    }
+}

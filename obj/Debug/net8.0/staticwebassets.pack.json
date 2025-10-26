@@ -5,12 +5,20 @@
       "PackagePath": "staticwebassets\\_framework\\blazor.webassembly.js"
     },
     {
+      "Id": "C:\\Users\\ajaan\\OneDrive - Barne-, ungdoms- og familiedirektoratet\\Dokumenter\\Privat\\KylaProject\\repo\\PinTheHighwayCrash\\PinTheHighwayCrash\\wwwroot\\appsettings.json",
+      "PackagePath": "staticwebassets\\appsettings.json"
+    },
+    {
       "Id": "C:\\Users\\ajaan\\OneDrive - Barne-, ungdoms- og familiedirektoratet\\Dokumenter\\Privat\\KylaProject\\repo\\PinTheHighwayCrash\\PinTheHighwayCrash\\wwwroot\\css\\app.css",
       "PackagePath": "staticwebassets\\css\\app.css"
     },
     {
       "Id": "C:\\Users\\ajaan\\OneDrive - Barne-, ungdoms- og familiedirektoratet\\Dokumenter\\Privat\\KylaProject\\repo\\PinTheHighwayCrash\\PinTheHighwayCrash\\wwwroot\\index.html",
       "PackagePath": "staticwebassets\\index.html"
+    },
+    {
+      "Id": "C:\\Users\\ajaan\\OneDrive - Barne-, ungdoms- og familiedirektoratet\\Dokumenter\\Privat\\KylaProject\\repo\\PinTheHighwayCrash\\PinTheHighwayCrash\\wwwroot\\js\\healthInterop.js",
+      "PackagePath": "staticwebassets\\js\\healthInterop.js"
     },
     {
       "Id": "C:\\Users\\ajaan\\OneDrive - Barne-, ungdoms- og familiedirektoratet\\Dokumenter\\Privat\\KylaProject\\repo\\PinTheHighwayCrash\\PinTheHighwayCrash\\wwwroot\\js\\mapInterop.js",

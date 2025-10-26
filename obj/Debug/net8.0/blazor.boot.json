@@ -1,7 +1,7 @@
 {
   "mainAssemblyName": "PinTheHighwayCrash",
   "resources": {
-    "hash": "sha256-WFJ7eutrPIpaaebzdOq+mEtou1u4ujuGvr+6CVE2158=",
+    "hash": "sha256-LPU+0RQNESaHM95givrT2dzUIRWxbs3UHxuyzqNW3vE=",
     "jsModuleNative": {
       "dotnet.native.js": "sha256-RiGT44TFZmHOY+Oqvb8o8r+BJVWex6+dPxFxrOiWvFY="
     },
@@ -37,6 +37,7 @@
       "Microsoft.Extensions.Logging.wasm": "sha256-Rx+UwnmyfTtMmlYd3HWJOvYVnSSwShUKrbPvqkfxmZk=",
       "Microsoft.Extensions.Logging.Abstractions.wasm": "sha256-R+hweMNg9P7RU++DPEpfqsjng2tWserGZEtjsL3gl84=",
       "Microsoft.Extensions.Options.wasm": "sha256-HPL9mH3zbRHz2Dv2qcWF0dUEk69pohDoiXzfTp2UMyE=",
+      "Microsoft.Extensions.Options.ConfigurationExtensions.wasm": "sha256-FJn0EJLLI163xQ+Wy2wmCHJUD7cIChe/4MAAADAyD/c=",
       "Microsoft.Extensions.Primitives.wasm": "sha256-pVrYOTfjb2ITls3LKIByW1t8jwOAWFhmkIVDewtJ1GE=",
       "Microsoft.JSInterop.wasm": "sha256-sm2HpM+aEsdu8kPTluhkGijieh9Fr/JLihBU0ZZvtVI=",
       "Microsoft.JSInterop.WebAssembly.wasm": "sha256-3wQR1/VN+SB8r7Gkqf93l8O4F1aSbaghQWV2PoaJByI=",
@@ -209,14 +210,17 @@
       "mscorlib.wasm": "sha256-Im6xq+lOse4P/VnAyrA3hwPstV67V5dB0EwQWcjipyE=",
       "netstandard.wasm": "sha256-PK0GLtj6kQVtZPzq0FZlnSdHh7geujg80LqKdJXA4pI=",
       "System.Private.CoreLib.wasm": "sha256-gEwccs7GbRSPGmeWBOKxNroYfyM+mZ7hqbP3ki1iwX0=",
-      "PinTheHighwayCrash.wasm": "sha256-nhibN6FuociMIrgFSbaZkProqzHIB3FB3RQ4XDUvyAI="
+      "PinTheHighwayCrash.wasm": "sha256-9sBD4tre52cixWXvRZfkYJ7Zh2ECJi8IIuFesglE5tM="
     },
     "pdb": {
-      "PinTheHighwayCrash.pdb": "sha256-Yoiyocyq2Ye2+AN2MpHlyTSsAANARVqA/gnCYaPcpfk="
+      "PinTheHighwayCrash.pdb": "sha256-lq/J1JnqNnMHMuDHt4/ko10o2Uf6D7MM+yMj42clPuA="
     }
   },
   "cacheBootResources": true,
   "debugLevel": -1,
+  "appsettings": [
+    "../appsettings.json"
+  ],
   "globalizationMode": "sharded",
   "extensions": {
     "blazor": {}

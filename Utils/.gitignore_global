@@ -1,0 +1,54 @@
+# --- Global ignores (for all repos) ---
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE caches
+.vs/
+*.vsidx
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Build outputs
+bin/
+obj/
+[Bb]uild/
+[Ll]og/
+*.cache
+
+# Node / front-end junk
+node_modules/
+dist/
+
+# Temporary files
+*.tmp
+*.temp
+~$*
+*.bak
+*.swp
+
+# OneDrive and sync files
+*.lnk
+*.tmp
+*.gid
+*.msi
+*.msix
+*.msixbundle
+
+# Logs
+*.log
+*.tlog
+
+# JetBrains / Rider
+.idea/
+*.iml
+
+# VSCode
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json

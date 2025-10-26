@@ -1032,6 +1032,12 @@ C:\Users\ajaan\OneDrive - Barne-, ungdoms- og familiedirektoratet\Dokumenter\Pri
 C:\Users\ajaan\OneDrive - Barne-, ungdoms- og familiedirektoratet\Dokumenter\Privat\KylaProject\repo\PinTheHighwayCrash\PinTheHighwayCrash\obj\Debug\net8.0\refint\PinTheHighwayCrash.dll
 C:\Users\ajaan\OneDrive - Barne-, ungdoms- og familiedirektoratet\Dokumenter\Privat\KylaProject\repo\PinTheHighwayCrash\PinTheHighwayCrash\obj\Debug\net8.0\PinTheHighwayCrash.pdb
 C:\Users\ajaan\OneDrive - Barne-, ungdoms- og familiedirektoratet\Dokumenter\Privat\KylaProject\repo\PinTheHighwayCrash\PinTheHighwayCrash\obj\Debug\net8.0\ref\PinTheHighwayCrash.dll
-C:\Users\ajaan\OneDrive - Barne-, ungdoms- og familiedirektoratet\Dokumenter\Privat\KylaProject\repo\PinTheHighwayCrash\PinTheHighwayCrash\obj\Debug\net8.0\compressed\mmy0b5ykm9-m7ls5iijb2.gz
-C:\Users\ajaan\OneDrive - Barne-, ungdoms- og familiedirektoratet\Dokumenter\Privat\KylaProject\repo\PinTheHighwayCrash\PinTheHighwayCrash\obj\Debug\net8.0\compressed\ydnf3uhzer-q905rjs0af.gz
-C:\Users\ajaan\OneDrive - Barne-, ungdoms- og familiedirektoratet\Dokumenter\Privat\KylaProject\repo\PinTheHighwayCrash\PinTheHighwayCrash\obj\Debug\net8.0\compressed\teauqm0487-ghdelgmbmk.gz
+C:\Users\ajaan\OneDrive - Barne-, ungdoms- og familiedirektoratet\Dokumenter\Privat\KylaProject\repo\PinTheHighwayCrash\PinTheHighwayCrash\bin\Debug\net8.0\wwwroot\_framework\Microsoft.Extensions.Options.ConfigurationExtensions.wasm
+C:\Users\ajaan\OneDrive - Barne-, ungdoms- og familiedirektoratet\Dokumenter\Privat\KylaProject\repo\PinTheHighwayCrash\PinTheHighwayCrash\bin\Debug\net8.0\wwwroot\_framework\Microsoft.Extensions.Options.ConfigurationExtensions.wasm.gz
+C:\Users\ajaan\OneDrive - Barne-, ungdoms- og familiedirektoratet\Dokumenter\Privat\KylaProject\repo\PinTheHighwayCrash\PinTheHighwayCrash\bin\Debug\net8.0\Microsoft.Extensions.Options.ConfigurationExtensions.dll
+C:\Users\ajaan\OneDrive - Barne-, ungdoms- og familiedirektoratet\Dokumenter\Privat\KylaProject\repo\PinTheHighwayCrash\PinTheHighwayCrash\obj\Debug\net8.0\webcil\Microsoft.Extensions.Options.ConfigurationExtensions.wasm
+C:\Users\ajaan\OneDrive - Barne-, ungdoms- og familiedirektoratet\Dokumenter\Privat\KylaProject\repo\PinTheHighwayCrash\PinTheHighwayCrash\obj\Debug\net8.0\compressed\0m6uz3ucuc-wr0w3muv43.gz
+C:\Users\ajaan\OneDrive - Barne-, ungdoms- og familiedirektoratet\Dokumenter\Privat\KylaProject\repo\PinTheHighwayCrash\PinTheHighwayCrash\obj\Debug\net8.0\compressed\mmy0b5ykm9-ui5whbu5x2.gz
+C:\Users\ajaan\OneDrive - Barne-, ungdoms- og familiedirektoratet\Dokumenter\Privat\KylaProject\repo\PinTheHighwayCrash\PinTheHighwayCrash\obj\Debug\net8.0\compressed\ydnf3uhzer-qvmrn7t9tf.gz
+C:\Users\ajaan\OneDrive - Barne-, ungdoms- og familiedirektoratet\Dokumenter\Privat\KylaProject\repo\PinTheHighwayCrash\PinTheHighwayCrash\obj\Debug\net8.0\compressed\teauqm0487-ookvh1j46k.gz
+C:\Users\ajaan\OneDrive - Barne-, ungdoms- og familiedirektoratet\Dokumenter\Privat\KylaProject\repo\PinTheHighwayCrash\PinTheHighwayCrash\bin\Debug\net8.0\wwwroot\appsettings.json

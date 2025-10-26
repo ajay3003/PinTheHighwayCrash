@@ -1,84 +1,123 @@
-﻿/* PinTheHighwayCrash SW (minimal) */
+﻿/* PinTheHighwayCrash SW (minimal, SPA-friendly) */
 const SW_VERSION = "ptc-v1";
+const SHELL_CACHE = "ptc-shell-" + SW_VERSION;
+const TILE_CACHE = "ptc-tiles-" + SW_VERSION;
+
 const APP_SHELL = [
-    "/",                           // root
+    "/",                 // root for SPA fallback
     "/index.html",
     "/css/app.css",
     "/js/mapInterop.js",
     "/js/healthInterop.js",
     "/js/shareInterop.js",
     "/js/offlineInterop.js",
-    "/_framework/blazor.webassembly.js",
-    "/_framework/dotnet.js",
-    // The rest of framework files will be requested and cached on first run
 ];
 
-const SHELL_CACHE = "ptc-shell-" + SW_VERSION;
-const TILE_CACHE = "ptc-tiles-" + SW_VERSION;
-
-// Defaults; app can send overrides via postMessage
+/* Tile caching defaults; can be overridden via postMessage */
 let cacheTiles = true;
-let tileHosts = ["tile.openstreetmap.org"];
+let tileHosts = ["tile.openstreetmap.org"]; // matches a/b/c subdomains via endsWith
 let maxTiles = 800;
 let maxDays = 21;
 
-self.addEventListener("install", (e) => {
-    e.waitUntil(
-        caches.open(SHELL_CACHE).then(c => c.addAll(APP_SHELL)).then(() => self.skipWaiting())
-    );
+self.addEventListener("install", (event) => {
+    event.waitUntil((async () => {
+        try {
+            const cache = await caches.open(SHELL_CACHE);
+            await cache.addAll(APP_SHELL);
+        } catch (_) {
+            // Don't fail install if a file is missing
+        }
+        await self.skipWaiting();
+    })());
 });
 
-self.addEventListener("activate", (e) => {
-    e.waitUntil(
-        (async () => {
-            const names = await caches.keys();
-            await Promise.all(
-                names
-                    .filter(n => ![SHELL_CACHE, TILE_CACHE].includes(n))
-                    .map(n => caches.delete(n))
-            );
-            await self.clients.claim();
-        })()
-    );
+self.addEventListener("activate", (event) => {
+    event.waitUntil((async () => {
+        const keep = new Set([SHELL_CACHE, TILE_CACHE]);
+        const names = await caches.keys();
+        await Promise.all(names.filter(n => !keep.has(n)).map(n => caches.delete(n)));
+        await self.clients.claim();
+        if ("navigationPreload" in self.registration) {
+            try { await self.registration.navigationPreload.enable(); } catch { }
+        }
+    })());
 });
 
-// Receive runtime settings from the app (optional)
+/* Runtime config from the app */
 self.addEventListener("message", (e) => {
-    const data = e.data || {};
-    if (typeof data.CacheTiles === "boolean") cacheTiles = data.CacheTiles;
-    if (Array.isArray(data.TileHosts)) tileHosts = data.TileHosts;
-    if (typeof data.MaxCachedTiles === "number") maxTiles = data.MaxCachedTiles;
-    if (typeof data.MaxTileAgeDays === "number") maxDays = data.MaxTileAgeDays;
+    const d = e.data || {};
+    if (typeof d.CacheTiles === "boolean") cacheTiles = d.CacheTiles;
+    if (Array.isArray(d.TileHosts)) tileHosts = d.TileHosts;
+    if (typeof d.MaxCachedTiles === "number") maxTiles = d.MaxCachedTiles;
+    if (typeof d.MaxTileAgeDays === "number") maxDays = d.MaxTileAgeDays;
 });
 
-self.addEventListener("fetch", (e) => {
-    const url = new URL(e.request.url);
+self.addEventListener("fetch", (event) => {
+    const req = event.request;
+    if (req.method !== "GET") return;
 
-    // App shell: NetworkFirst -> Cache
-    if (url.origin === location.origin) {
-        e.respondWith(networkFirstThenCache(e.request, SHELL_CACHE));
+    const url = new URL(req.url);
+    const sameOrigin = url.origin === location.origin;
+
+    // 1) SPA navigation requests: NetworkFirst, fallback to cached index.html
+    if (req.mode === "navigate") {
+        event.respondWith(handleSPARequest(event, req));
         return;
     }
 
-    // Tile caching (CacheFirst) if enabled and host matches
+    // 2) Same-origin static assets: NetworkFirst → Cache
+    if (sameOrigin) {
+        event.respondWith(networkFirstThenCache(req, SHELL_CACHE));
+        return;
+    }
+
+    // 3) Map tiles: CacheFirst
     if (cacheTiles && tileHosts.some(h => url.hostname.endsWith(h))) {
-        e.respondWith(cacheFirstTiles(e.request));
+        event.respondWith(cacheFirstTiles(req));
         return;
     }
-    // Default: passthrough
+
+    // 4) Default passthrough for everything else
 });
+
+/* ------- Strategies ------- */
+
+async function handleSPARequest(event, req) {
+    try {
+        // Try navigation preload if available
+        const preloaded = await event.preloadResponse;
+        if (preloaded) {
+            const cache = await caches.open(SHELL_CACHE);
+            cache.put(req, preloaded.clone()).catch(() => { });
+            return preloaded;
+        }
+    } catch { }
+
+    try {
+        const res = await fetch(req);
+        const cache = await caches.open(SHELL_CACHE);
+        cache.put(req, res.clone()).catch(() => { });
+        return res;
+    } catch {
+        const cache = await caches.open(SHELL_CACHE);
+        const fallback = await cache.match("/index.html", { ignoreVary: true });
+        if (fallback) return fallback;
+        return new Response("Offline", { status: 503, statusText: "Offline" });
+    }
+}
 
 async function networkFirstThenCache(req, cacheName) {
     try {
         const res = await fetch(req);
-        const cache = await caches.open(cacheName);
-        cache.put(req, res.clone());
+        if (res && (res.ok || res.type === "opaqueredirect" || res.type === "opaque")) {
+            const cache = await caches.open(cacheName);
+            cache.put(req, res.clone()).catch(() => { });
+        }
         return res;
     } catch {
         const cache = await caches.open(cacheName);
         const hit = await cache.match(req, { ignoreVary: true });
         if (hit) return hit;
-        // Last resort: offline page? (not needed here)
         throw new Error("Offline and not cached");
     }
 }
@@ -90,12 +129,11 @@ async function cacheFirstTiles(req) {
 
     try {
         const res = await fetch(req, { mode: "no-cors" }); // OSM allows tile fetch
-        // Store and prune
-        await cache.put(req, res.clone());
-        pruneTiles(cache);
+        cache.put(req, res.clone()).catch(() => { });
+        pruneTiles(cache).catch(() => { });
         return res;
     } catch {
-        // No tile available: return a 1x1 transparent PNG
+        // 1x1 transparent PNG fallback
         return new Response(
             Uint8Array.from([137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82, 0, 0, 0, 1, 0, 0, 0, 1, 8, 6, 0, 0, 0, 31, 21, 196, 137, 0, 0, 0, 12, 73, 68, 65, 84, 120, 156, 99, 96, 0, 0, 0, 2, 0, 1, 226, 33, 188, 33, 0, 0, 0, 0, 73, 69, 78, 68, 174, 66, 96, 130]),
             { headers: { "Content-Type": "image/png" } }
@@ -105,14 +143,11 @@ async function cacheFirstTiles(req) {
 
 async function pruneTiles(cache) {
     const keys = await cache.keys();
-    if (keys.length <= maxTiles) return;
+    if (keys.length > maxTiles) {
+        const toDelete = keys.length - maxTiles;
+        for (let i = 0; i < toDelete; i++) await cache.delete(keys[i]);
+    }
 
-    // crude LRU-ish: delete oldest first
-    // (Cache API has no timestamps; we approximate by order)
-    const toDelete = keys.length - maxTiles;
-    for (let i = 0; i < toDelete; i++) await cache.delete(keys[i]);
-
-    // age-based purge (best-effort)
     const now = Date.now();
     const maxAge = maxDays * 24 * 60 * 60 * 1000;
     for (const k of await cache.keys()) {

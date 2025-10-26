@@ -1,0 +1,51 @@
+﻿@* PinTheHighwayCrash/Shared/OfflineBadge.razor *@
+@using Microsoft.JSInterop
+@inject IJSRuntime JS
+
+@if (!_online)
+{
+    <div class="alert alert-warning py-2 px-3 small mb-2">
+        You are offline. Map tiles and verification may be limited. Phone/SMS still work with cellular signal.
+    </div>
+}
+
+@code {
+    private bool _online = true;
+    private CancellationTokenSource? _cts;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // read initial state
+        _online = await GetOnlineAsync();
+        // start lightweight poller (no extra JS needed)
+        _cts = new CancellationTokenSource();
+        _ = PollConnectivityAsync(_cts.Token);
+    }
+
+    private async Task<bool> GetOnlineAsync()
+        => await JS.InvokeAsync<bool>("eval", "navigator.onLine");
+
+    private async Task PollConnectivityAsync(CancellationToken token)
+    {
+        try
+        {
+            while (!token.IsCancellationRequested)
+            {
+                var current = await GetOnlineAsync();
+                if (current != _online)
+                {
+                    _online = current;
+                    await InvokeAsync(StateHasChanged);
+                }
+                await Task.Delay(2000, token); // check every 2s
+            }
+        }
+        catch (TaskCanceledException) { /* ignore */ }
+    }
+
+    public void Dispose()
+    {
+        _cts?.Cancel();
+        _cts?.Dispose();
+    }
+}

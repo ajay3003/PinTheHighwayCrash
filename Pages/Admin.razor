@@ -1,9 +1,9 @@
 ﻿@page "/admin"
+@using System
 @using Microsoft.AspNetCore.Components.Forms
 @using System.Text.Json
 @using PinTheHighwayCrash.Models
 @inject SettingsService Settings
-@inject ISettingsStore Store
 @inject IJSRuntime JS
 
 <h1 class="text-2xl font-bold mb-4">Admin</h1>
@@ -14,6 +14,10 @@
 }
 else
 {
+    <div class="mb-3 d-flex gap-2">
+        <button class="btn btn-outline-secondary" type="button" @onclick="LockAsync">Lock</button>
+    </div>
+
     <EditForm Model="_model" OnValidSubmit="SaveAsync">
         <DataAnnotationsValidator />
         <ValidationSummary />
@@ -94,7 +98,7 @@ else
                     <p><strong>Settings schema:</strong> @_model.Schema</p>
                     <p><strong>App version:</strong> @AssemblyVersion</p>
                     <p class="text-sm text-muted mt-2">
-                        Settings are stored locally (IndexedDB) and never leave this device.
+                        Settings are stored locally with AES-GCM encryption and never leave this device.
                     </p>
                 </div>
                 break;
@@ -113,15 +117,22 @@ else
     private AdminSettings _model = new();
     private ElementReference _importInputRef;
 
-    protected override async Task OnInitializedAsync()
+    // Wait to load until after unlock; initialize light defaults
+    protected override Task OnInitializedAsync()
     {
-        await Settings.InitializeAsync();
-        _model = Clone(Settings.Current);
+        _unlocked = false;
+        _model = new AdminSettings();
+        return Task.CompletedTask;
     }
 
+    // Called by <AdminLock /> after successful unlock
     private async Task HandleUnlocked()
     {
         _unlocked = true;
+
+        var loaded = await Settings.LoadAsync();   // uses EncryptedSettingsStore under the hood
+        _model = loaded ?? new AdminSettings();
+
         await InvokeAsync(StateHasChanged);
     }
 
@@ -129,8 +140,16 @@ else
 
     private async Task ReloadAsync()
     {
-        await Settings.InitializeAsync();
-        _model = Clone(Settings.Current);
+        var loaded = await Settings.LoadAsync();
+        _model = loaded ?? new AdminSettings();
+    }
+
+    private Task LockAsync()
+    {
+        PinTheHighwayCrash.Services.DataKeyHolder.Clear(); // forget in-memory AES key
+        _unlocked = false;
+        StateHasChanged();
+        return Task.CompletedTask;
     }
 
     private Task ExportAsync()
@@ -141,9 +160,9 @@ else
         return BlazorDownloadFile(fileName, "application/json", bytes);
     }
 
-    private async Task ImportAsync(ChangeEventArgs e)
+    private async Task ImportAsync(ChangeEventArgs _)
     {
-        // Requires wwwroot/js/fileHelpers.js and index.html: <script src="js/fileHelpers.js" defer></script>
+        // Requires wwwroot/js/fileHelpers.js (already included in index.html)
         var text = await JS.InvokeAsync<string>("FileHelpers.readAsTextFromInput", _importInputRef);
         if (string.IsNullOrWhiteSpace(text)) return;
 
@@ -154,7 +173,7 @@ else
         }
         catch
         {
-            // Optionally show an error toast/alert here
+            // optionally toast an error here
             return;
         }
         if (imported is null) return;

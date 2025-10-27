@@ -1,49 +1,37 @@
-﻿using System.Text.Json;
+﻿// PinTheHighwayCrash/Services/CooldownJs.cs
 using Microsoft.JSInterop;
+using System.Text.Json;
 
 namespace PinTheHighwayCrash.Services
 {
     /// <summary>
-    /// JS interop bridge for cooldown and anti-spam persistence.
-    /// Wraps calls to js/cooldown.js.
+    /// JS interop bridge for cooldown/anti-spam persistence (local/session storage).
     /// </summary>
     public sealed class CooldownJs
     {
         private readonly IJSRuntime _js;
 
-        public CooldownJs(IJSRuntime js)
-        {
-            _js = js;
-        }
+        public CooldownJs(IJSRuntime js) => _js = js;
 
-        /// <summary>
-        /// Returns current timestamp in milliseconds (Date.now()).
-        /// </summary>
         public ValueTask<long> NowMs()
             => _js.InvokeAsync<long>("pthc.cooldown.nowMs");
 
         /// <summary>
-        /// Retrieves JSON value from storage (local or session).
+        /// Prefer this: gets raw JSON string or null. Avoids Nullable&lt;JsonElement&gt; casting issues.
         /// </summary>
+        public ValueTask<string?> GetRaw(bool useLocal, string key)
+            => _js.InvokeAsync<string?>("pthc.cooldown.getRaw", useLocal, key);
+
+        // Kept for compatibility (no longer used by our services)
         public ValueTask<JsonElement?> Get(bool useLocal, string key)
             => _js.InvokeAsync<JsonElement?>("pthc.cooldown.get", useLocal, key);
 
-        /// <summary>
-        /// Stores an object in storage.
-        /// </summary>
         public ValueTask Set(bool useLocal, string key, object obj)
             => _js.InvokeVoidAsync("pthc.cooldown.set", useLocal, key, obj);
 
-        /// <summary>
-        /// Removes an entry from storage.
-        /// </summary>
         public ValueTask Remove(bool useLocal, string key)
             => _js.InvokeVoidAsync("pthc.cooldown.remove", useLocal, key);
 
-        /// <summary>
-        /// Removes all entries that start with the given prefix.
-        /// Requires a helper function in js/cooldown.js.
-        /// </summary>
         public ValueTask RemoveAllWithPrefix(bool useLocal, string prefix)
             => _js.InvokeVoidAsync("pthc.cooldown.removeAllWithPrefix", useLocal, prefix);
     }

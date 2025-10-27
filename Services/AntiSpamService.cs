@@ -6,10 +6,6 @@ using PinTheHighwayCrash.Models;
 
 namespace PinTheHighwayCrash.Services
 {
-    /// <summary>
-    /// Client-side anti-spam guard that prevents repeated actions (call/SMS/etc.)
-    /// within time or location constraints, using browser storage.
-    /// </summary>
     public sealed class AntiSpamService : IAntiSpamService
     {
         private readonly IOptionsMonitor<AntiSpamOptions> _opt;
@@ -21,134 +17,131 @@ namespace PinTheHighwayCrash.Services
             _js = js;
         }
 
-        private string BuildKey(string suffix) => $"{_opt.CurrentValue.Storage.KeyPrefix}{suffix}";
+        private AntiSpamOptions O => _opt.CurrentValue;
+        private string Pfx => O.Storage.KeyPrefix;
+        private bool UseLocal => O.Storage.UseLocalStorage;
 
-        /// <inheritdoc />
+        private string BuildKey(string suffix) => $"{Pfx}{suffix}";
+
         public async Task<AntiSpamDecision> GuardAsync(string actionKey, double pinLat, double pinLng)
         {
-            var cfg = _opt.CurrentValue;
-            if (!cfg.Enabled)
-                return AntiSpamDecision.Allow();
+            if (!O.Enabled) return AntiSpamDecision.Allow();
 
             var now = await _js.NowMs();
-            var useLocal = cfg.Storage.UseLocalStorage;
 
-            // ---- Global post-action lockout ----
-            var lockKey = BuildKey("global_lock");
-            var lockJson = await _js.Get(useLocal, lockKey);
-            if (lockJson.HasValue &&
-                lockJson.Value.TryGetProperty("until", out var untilProp) &&
-                untilProp.GetInt64() > now)
+            // Global lock
+            var lockRaw = await _js.GetRaw(UseLocal, BuildKey("global_lock"));
+            if (!string.IsNullOrEmpty(lockRaw))
             {
-                var remain = untilProp.GetInt64() - now;
-                var sec = (int)Math.Ceiling(remain / 1000.0);
-                return AntiSpamDecision.Deny($"Please wait {sec}s before sending another report.");
+                using var doc = JsonDocument.Parse(lockRaw);
+                if (doc.RootElement.TryGetProperty("until", out var u))
+                {
+                    var until = u.GetInt64();
+                    if (now < until)
+                    {
+                        var sec = Math.Max(1, (int)Math.Ceiling((until - now) / 1000.0));
+                        return AntiSpamDecision.Deny($"Please wait {sec}s before using another channel.");
+                    }
+                }
             }
 
-            // ---- Duplicate (same cell) check ----
+            // Duplicate (same cell)
             var cellKey = BuildCellKey(pinLat, pinLng);
-            var cellJson = await _js.Get(useLocal, cellKey);
-            if (cellJson.HasValue &&
-                cellJson.Value.TryGetProperty("until", out var duUntil) &&
-                duUntil.GetInt64() > now)
+            var dupeRaw = await _js.GetRaw(UseLocal, cellKey);
+            if (!string.IsNullOrEmpty(dupeRaw))
             {
-                var remain = duUntil.GetInt64() - now;
-                var min = Math.Ceiling(remain / 60000.0);
-                return AntiSpamDecision.Deny($"Duplicate report blocked for {min:0} more min in this area.");
+                using var doc = JsonDocument.Parse(dupeRaw);
+                if (doc.RootElement.TryGetProperty("until", out var u))
+                {
+                    var until = u.GetInt64();
+                    if (now < until)
+                    {
+                        var minsLeft = Math.Max(1, (int)Math.Ceiling((until - now) / 60000.0));
+                        return AntiSpamDecision.Deny($"A report was recently sent for this location. Try again in ~{minsLeft} min.");
+                    }
+                }
             }
 
-            // ---- Daily cap check ----
-            var dailyCount = await GetDailyCountAsync(actionKey);
-            var limit = cfg.DailyCaps.ForAction(actionKey);
-            if (limit > 0 && dailyCount >= limit)
-            {
-                return AntiSpamDecision.Deny($"Daily limit reached for {actionKey} ({limit}).");
-            }
+            // Daily cap
+            var used = await GetDailyCountAsync(actionKey);
+            var limit = O.DailyCaps.ForAction(actionKey);
+            if (limit > 0 && used >= limit)
+                return AntiSpamDecision.Deny($"Daily limit reached for {actionKey}.");
 
             return AntiSpamDecision.Allow();
         }
 
-        /// <inheritdoc />
         public async Task RecordAsync(string actionKey, double pinLat, double pinLng)
         {
-            var cfg = _opt.CurrentValue;
+            if (!O.Enabled) return;
+
             var now = await _js.NowMs();
-            var useLocal = cfg.Storage.UseLocalStorage;
 
-            // ---- Set post-action global lockout ----
-            var lockoutMs = cfg.PostActionLockoutSeconds * 1000L;
-            if (lockoutMs > 0)
+            // Global lock
+            if (O.PostActionLockoutSeconds > 0)
             {
-                var until = now + lockoutMs;
-                await _js.Set(useLocal, BuildKey("global_lock"), new { until });
+                var until = now + (long)O.PostActionLockoutSeconds * 1000L;
+                await _js.Set(UseLocal, BuildKey("global_lock"), new { until });
             }
 
-            // ---- Set duplicate cell window ----
-            var cellMs = cfg.DuplicateWindowMinutes * 60_000L;
-            if (cellMs > 0)
+            // Duplicate window
+            if (O.DuplicateWindowMinutes > 0)
             {
-                var until = now + cellMs;
-                await _js.Set(useLocal, BuildCellKey(pinLat, pinLng), new { until });
+                var until = now + (long)O.DuplicateWindowMinutes * 60_000L;
+                await _js.Set(UseLocal, BuildCellKey(pinLat, pinLng), new { until });
             }
 
-            // ---- Increment daily counter ----
+            // Daily count
             var dayKey = BuildKey($"{actionKey}_daily");
-            var today = DateTime.UtcNow.Date;
-            var existing = await _js.Get(useLocal, dayKey);
-
+            var today = DateTime.UtcNow.ToString("yyyy-MM-dd");
             int count = 0;
-            string? storedDate = null;
 
-            if (existing.HasValue &&
-                existing.Value.TryGetProperty("date", out var dateProp) &&
-                existing.Value.TryGetProperty("count", out var countProp))
+            var raw = await _js.GetRaw(UseLocal, dayKey);
+            if (!string.IsNullOrEmpty(raw))
             {
-                storedDate = dateProp.GetString();
-                count = countProp.GetInt32();
+                using var doc = JsonDocument.Parse(raw);
+                var root = doc.RootElement;
+                var date = root.TryGetProperty("date", out var d) ? d.GetString() : null;
+                if (date == today && root.TryGetProperty("count", out var c)) count = c.GetInt32();
             }
 
-            if (storedDate != today.ToString("yyyy-MM-dd"))
-                count = 0;
-
-            count++;
-            await _js.Set(useLocal, dayKey, new { date = today.ToString("yyyy-MM-dd"), count });
+            await _js.Set(UseLocal, dayKey, new { date = today, count = count + 1 });
         }
 
-        /// <inheritdoc />
         public async Task<int> GetDailyCountAsync(string actionKey)
         {
-            var useLocal = _opt.CurrentValue.Storage.UseLocalStorage;
             var dayKey = BuildKey($"{actionKey}_daily");
-            var json = await _js.Get(useLocal, dayKey);
-            if (!json.HasValue) return 0;
+            var raw = await _js.GetRaw(UseLocal, dayKey);
+            if (string.IsNullOrEmpty(raw)) return 0;
 
-            if (json.Value.TryGetProperty("date", out var dateProp) &&
-                json.Value.TryGetProperty("count", out var countProp))
+            using var doc = JsonDocument.Parse(raw);
+            var root = doc.RootElement;
+            var date = root.TryGetProperty("date", out var d) ? d.GetString() : null;
+            if (date == DateTime.UtcNow.ToString("yyyy-MM-dd") &&
+                root.TryGetProperty("count", out var c))
             {
-                var storedDate = dateProp.GetString();
-                if (storedDate == DateTime.UtcNow.Date.ToString("yyyy-MM-dd"))
-                    return countProp.GetInt32();
+                return c.GetInt32();
             }
             return 0;
         }
 
-        /// <inheritdoc />
         public async Task ClearAsync()
         {
-            var useLocal = _opt.CurrentValue.Storage.UseLocalStorage;
-            await _js.RemoveAllWithPrefix(useLocal, _opt.CurrentValue.Storage.KeyPrefix);
+            await _js.RemoveAllWithPrefix(UseLocal, Pfx);
         }
-
-        // ---- Helpers ----
 
         private string BuildCellKey(double lat, double lng)
         {
-            var cellSize = _opt.CurrentValue.CellSizeMeters;
-            const double metersPerDegree = 111_320.0; // rough at equator
+            // latitude-aware meters→degrees
+            var metersPerDegLat = 111_320.0;
+            var metersPerDegLng = 111_320.0 * Math.Max(0.1, Math.Cos(lat * Math.PI / 180.0));
+            var cellLatDeg = O.CellSizeMeters / metersPerDegLat;
+            var cellLngDeg = O.CellSizeMeters / metersPerDegLng;
 
-            var latCell = Math.Floor(lat * metersPerDegree / cellSize);
-            var lngCell = Math.Floor(lng * metersPerDegree / cellSize);
-            return BuildKey($"cell_{latCell}_{lngCell}");
+            var qlat = Math.Round(lat / cellLatDeg) * cellLatDeg;
+            var qlng = Math.Round(lng / cellLngDeg) * cellLngDeg;
+
+            return BuildKey($"cell_{qlat:F5}_{qlng:F5}");
         }
     }
 }

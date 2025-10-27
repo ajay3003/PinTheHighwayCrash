@@ -15,8 +15,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  DOTNET_VERSION: '8.0.x'                       # use 9.0.x if your project targets .NET 9
-  PROJECT_PATH: 'PinTheHighwayCrash/PinTheHighwayCrash.csproj'  # <-- update if different
+  DOTNET_VERSION: '8.0.x'
   PUBLISH_DIR: './build/'
   PAGES_DIR: './build/wwwroot'
 
@@ -29,7 +28,19 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
-          cache: false
+          cache: false   # turn off until lock files are added
+
+      # Auto-detect a single .csproj (prefers non-test projects)
+      - name: Detect project file
+        id: detect
+        run: |
+          set -e
+          csproj=$(git ls-files '*.csproj' | grep -viE 'test|tests' | head -n 1)
+          if [ -z "$csproj" ]; then
+            echo "No .csproj found"; exit 1
+          fi
+          echo "PROJECT_PATH=$csproj" >> $GITHUB_ENV
+          echo "Detected project: $csproj"
 
       - name: Restore
         run: dotnet restore "${{ env.PROJECT_PATH }}"
@@ -37,13 +48,13 @@ jobs:
       - name: Publish (Release)
         run: dotnet publish "${{ env.PROJECT_PATH }}" -c Release -p:PublishDir="${{ env.PUBLISH_DIR }}"
 
-      # Make SPA work on Pages + avoid Jekyll processing
-      - name: Tweak base href for project site
+      # Adjust base href for project Pages and add SPA bits
+      - name: Tweak base href
         run: |
           REPO_NAME="${{ github.event.repository.name }}"
           INDEX_FILE="${{ env.PAGES_DIR }}/index.html"
           sed -i "s#<base href=\"/\" />#<base href=\"/${REPO_NAME}/\" />#g" "$INDEX_FILE"
-      - name: Add 404.html (SPA fallback) and .nojekyll
+      - name: Add 404.html and .nojekyll
         run: |
           cp "${{ env.PAGES_DIR }}/index.html" "${{ env.PAGES_DIR }}/404.html"
           touch "${{ env.PAGES_DIR }}/.nojekyll"

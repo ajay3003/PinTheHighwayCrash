@@ -11,6 +11,7 @@
 @inject IOptions<EmergencyOptions> EmergencyOpts
 @inject IOptions<GeoOptions> GeoOpts
 @inject IAntiSpamService AntiSpam
+@inject SettingsService Settings
 @implements IDisposable
 
 <h1>Report Highway Crash (@_country)</h1>
@@ -228,6 +229,7 @@ else
 
     protected override Task OnInitializedAsync()
     {
+        // ---- appsettings defaults ----
         var e = EmergencyOpts.Value;
         _country = e.Country ?? "IN";
         _phone = e.Phone ?? "112";
@@ -241,6 +243,23 @@ else
         var geo = GeoOpts.Value;
         _maxAllowedMeters = geo.MaxDistanceMeters;
         _onRoadCheckEnabled = geo.OnRoadVerification.Enabled;
+
+        // ---- Admin overrides (device-local) ----
+        var s = Settings.Current;
+        if (s is not null)
+        {
+            if (s.GeofenceKm > 0) _maxAllowedMeters = (int)Math.Round(s.GeofenceKm * 1000);
+
+            if (s.Channels is not null)
+            {
+                _enableCall = s.Channels.Call;
+                _enableSms = s.Channels.Sms;
+                _enableEmail = s.Channels.Email;
+                _enableWhatsApp = s.Channels.WhatsApp;
+            }
+            // NOTE: Phone/email targets remain from appsettings. If you later add admin-side targets,
+            // map them here similarly.
+        }
 
         return Task.CompletedTask;
     }
@@ -574,16 +593,37 @@ else
     private string BuildReportText()
     {
         var maps = $"https://maps.google.com/?q={_pinLat:F6},{_pinLng:F6}";
-        var note = string.IsNullOrWhiteSpace(_note) ? "" : $"Note: {_note}\n";
-        var road = _onRoad == true ? "On a road (verified)" :
-                    _onRoad == false ? "Off-road" : "Road status unknown";
-        return $"EMERGENCY: Highway accident reported.\n" +
-               $"Pinned Location: {_pinLat:F6}, {_pinLng:F6}\n" +
-               $"Reporter GPS: {_meLat:F6}, {_meLng:F6} (±{_accuracy} m)\n" +
-               $"{note}" +
-               $"Road Status: {road}\n" +
-               $"Map: {maps}\n" +
-               $"Time (UTC): {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}";
+        var road = _onRoad == true ? "On a road (verified)"
+                 : _onRoad == false ? "Off-road"
+                 : "Road status unknown";
+
+        // Default message (if no Admin template)
+        var defaultText =
+            $"EMERGENCY: Highway accident reported.\n" +
+            $"Pinned Location: {_pinLat:F6}, {_pinLng:F6}\n" +
+            $"Reporter GPS: {_meLat:F6}, {_meLng:F6} (±{_accuracy} m)\n" +
+            $"{(string.IsNullOrWhiteSpace(_note) ? "" : $"Note: {_note}\n")}" +
+            $"Road Status: {road}\n" +
+            $"Map: {maps}\n" +
+            $"Time (UTC): {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}";
+
+        var tmpl = Settings.Current?.Templates;
+        if (tmpl is null) return defaultText;
+
+        // Prefer Admin SMS template for short shares (works fine for email too)
+        var template = !string.IsNullOrWhiteSpace(tmpl.Sms) ? tmpl.Sms : defaultText;
+
+        var composed = template
+            .Replace("{location}", _country ?? "")
+            .Replace("{coords}", $"{_pinLat:F6},{_pinLng:F6}")
+            .Replace("{timestamp}", $"{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC")
+            .Replace("{details}", _note ?? "");
+
+        // If the admin template didn’t include a maps link, append it for convenience
+        if (!template.Contains("{maps}", StringComparison.OrdinalIgnoreCase))
+            composed += $"\nMap: {maps}";
+
+        return composed;
     }
 
     public void Dispose()

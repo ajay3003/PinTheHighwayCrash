@@ -1,0 +1,197 @@
+﻿@using Microsoft.AspNetCore.Components
+@using Microsoft.AspNetCore.Components.Forms
+
+@inject ISettingsStore Store
+@inject AdminCryptoJs Crypto
+
+@if (_enrolling)
+{
+    <EditForm OnValidSubmit="EnrollAsync">
+        <div class="card p-3" style="max-width:420px">
+            <h5 class="mb-2">Set Admin Passphrase</h5>
+            <p class="text-muted mb-3">This protects local settings on this device.</p>
+
+            <InputText @bind-Value="_pass1" class="form-control mb-2" type="password" placeholder="Passphrase (min 8 chars)" />
+            <InputText @bind-Value="_pass2" class="form-control mb-2" type="password" placeholder="Confirm passphrase" />
+
+            @if (!string.IsNullOrWhiteSpace(_error))
+            {
+                <div class="text-danger small mb-2">@_error</div>
+            }
+
+            <button class="btn btn-primary w-100" type="submit">Save</button>
+        </div>
+    </EditForm>
+}
+else
+{
+    <EditForm OnValidSubmit="UnlockAsync">
+        <div class="card p-3" style="max-width:420px">
+            <h5 class="mb-2">Admin Unlock</h5>
+
+            <InputText @bind-Value="_pass" class="form-control mb-2" type="password" placeholder="Enter passphrase" />
+
+            @if (!string.IsNullOrWhiteSpace(_status))
+            {
+                <div class="text-muted small mb-1">@_status</div>
+            }
+            @if (!string.IsNullOrWhiteSpace(_error))
+            {
+                <div class="text-danger small mb-1">@_error</div>
+            }
+
+            <button class="btn btn-primary w-100 mt-2" type="submit" disabled="@_lockedOut">Unlock</button>
+        </div>
+    </EditForm>
+}
+
+@code {
+    [Parameter] public EventCallback OnUnlocked { get; set; }
+
+    private bool _enrolling;
+    private bool _lockedOut;
+    private string? _pass1, _pass2, _pass;
+    private string? _error, _status;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var has = await Store.HasAdminLockAsync();
+        _enrolling = !has;
+        if (!has)
+        {
+            _status = "Create a passphrase for this device.";
+        }
+        else
+        {
+            await CheckBackoffAsync();
+        }
+    }
+
+    private async Task EnrollAsync()
+    {
+        _error = null;
+
+        if (string.IsNullOrWhiteSpace(_pass1) || _pass1.Length < 8)
+        {
+            _error = "Use at least 8 characters.";
+            return;
+        }
+        if (_pass1 != _pass2)
+        {
+            _error = "Passphrases do not match.";
+            return;
+        }
+
+        // Derive KEK and wrap a fresh data key
+        var salt = await Crypto.RandomB64(16);
+        var iterations = 300_000;
+
+        var kek = await Crypto.DeriveKek(_pass1!, salt, iterations);
+        var dataKey = await Crypto.GenDataKey();
+        var wrapped = await Crypto.WrapKey(kek, dataKey);
+
+        // Hold decrypted data key in-memory while unlocked
+        DataKeyHolder.Ref = dataKey;
+
+        // Persist lock metadata (salt/iterations/wrapped key, reset fails)
+        var wrappedJson = System.Text.Json.JsonSerializer.Serialize(wrapped);
+        await ((EncryptedSettingsStore)Store).SetAdminLockAsync(salt, wrappedJson, iterations);
+
+        _enrolling = false;
+        _status = null;
+        _error = null;
+        await OnUnlocked.InvokeAsync();
+    }
+
+    private async Task UnlockAsync()
+    {
+        _error = null;
+        _status = null;
+
+        var info = await ((EncryptedSettingsStore)Store).GetAdminLockFullAsync();
+        if (info is null)
+        {
+            _error = "Admin lock is not initialized.";
+            return;
+        }
+
+        var (salt, wrapped, iters, fails, lastFailUtc) = info.Value;
+
+        if (await IsBackedOffAsync(fails, lastFailUtc))
+        {
+            _lockedOut = true;
+            return;
+        }
+
+        try
+        {
+            var kek = await Crypto.DeriveKek(_pass ?? string.Empty, salt, iters);
+            var dataKey = await Crypto.UnwrapKey(kek, wrapped);
+
+            // Success: store data key reference and clear fails
+            DataKeyHolder.Ref = dataKey;
+            await ((EncryptedSettingsStore)Store).UpdateFailsAsync(0, null);
+
+            _lockedOut = false;
+            _error = null;
+            _status = null;
+            await OnUnlocked.InvokeAsync();
+        }
+        catch
+        {
+            // Failed attempt: backoff
+            fails++;
+            var nowIso = DateTime.UtcNow.ToString("o");
+            await ((EncryptedSettingsStore)Store).UpdateFailsAsync(fails, nowIso);
+
+            _error = "Wrong passphrase.";
+            await CheckBackoffAsync();
+        }
+    }
+
+    private async Task CheckBackoffAsync()
+    {
+        var info = await ((EncryptedSettingsStore)Store).GetAdminLockFullAsync();
+        if (info is null)
+        {
+            _lockedOut = false;
+            _status = null;
+            return;
+        }
+
+        var (_, _, _, fails, lastFailUtc) = info.Value;
+        _lockedOut = await IsBackedOffAsync(fails, lastFailUtc);
+    }
+
+    // Exponential backoff: 1s, 5s, 30s, 300s (max 5 min)
+    private Task<bool> IsBackedOffAsync(int fails, string? lastFailUtc)
+    {
+        if (fails <= 0 || string.IsNullOrWhiteSpace(lastFailUtc))
+        {
+            _status = null;
+            return Task.FromResult(false);
+        }
+
+        var steps = new[] { 1, 5, 30, 300 };
+        var idx = Math.Min(fails - 1, steps.Length - 1);
+        var wait = TimeSpan.FromSeconds(steps[idx]);
+
+        if (!DateTime.TryParse(lastFailUtc, null, System.Globalization.DateTimeStyles.AdjustToUniversal, out var last))
+        {
+            _status = null;
+            return Task.FromResult(false);
+        }
+
+        var until = last + wait;
+        var remaining = until - DateTime.UtcNow;
+
+        if (remaining > TimeSpan.Zero)
+        {
+            _status = $"Locked. Try again in {Math.Ceiling(remaining.TotalSeconds)}s.";
+            return Task.FromResult(true);
+        }
+
+        _status = null;
+        return Task.FromResult(false);
+    }
+}

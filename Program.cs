@@ -36,7 +36,21 @@ builder.Services.AddScoped<ICooldownService, CooldownService>();
 builder.Services.AddScoped<CooldownJs>();
 builder.Services.AddScoped<HealthService>();
 builder.Services.AddScoped<VerificationService>(); // on-road + forward geocode
-builder.Services.AddScoped<IAntiSpamService, AntiSpamService>(); // anti-spam guard
+builder.Services.AddScoped<IAntiSpamService, AntiSpamService>();   // anti-spam guard
+
+// ---------------- Admin Settings (secure, device-local) ----------------
+// JS crypto helper for AES-GCM + PBKDF2 (imports ./wwwroot/js/adminCrypto.js as ES module)
+builder.Services.AddScoped<AdminCryptoJs>();
+
+// Encrypted settings store (replaces plaintext IndexedDbSettingsStore)
+builder.Services.AddScoped<ISettingsStore, EncryptedSettingsStore>();
+
+// SettingsService orchestrates load/save and exposes Current settings
+builder.Services.AddScoped<SettingsService>();
+
+// ---- If you need to keep the legacy plaintext store for migration/testing, you could swap back: ----
+// builder.Services.AddScoped<ISettingsStore, IndexedDbSettingsStore>();
+// builder.Services.AddScoped<AdminStoreJs>(); // only needed by legacy store
 
 // ---------------- Logging ----------------
 var min = builder.Configuration["Logging:LogLevel:Default"];

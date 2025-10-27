@@ -53,19 +53,24 @@
             crossorigin=""
             defer></script>
 
-    <!-- Interop scripts (cache-busted with ?v=) -->
+    <!-- Core interop scripts -->
     <script src="js/healthInterop.js?v=2025-10-27.1" defer></script>
     <script src="js/mapInterop.js?v=2025-10-27.1" defer></script>
     <script src="js/shareInterop.js?v=2025-10-27.1" defer></script>
     <script src="js/cooldown.js?v=2025-10-27.1" defer></script>
 
-    <!-- Service worker registration (subpath-safe + instant updates) -->
+    <!-- Admin / encryption modules -->
+    <script src="js/adminCrypto.js?v=2025-10-27.1" defer></script>
+    <script type="module" src="js/adminStore.js?v=2025-10-27.1"></script>
+    <script src="js/download.js?v=2025-10-27.1"></script>
+    <script src="js/fileHelpers.js?v=2025-10-27.1"></script>
+
+    <!-- Service worker registration -->
     <script>
         (function () {
             if (!('serviceWorker' in navigator)) return;
 
-            // Build a same-origin, base-aware URL (works for "/" and "/SubPath/")
-            var swUrl = new URL('service-worker.js', document.baseURI).toString(); // ✅
+            var swUrl = new URL('service-worker.js', document.baseURI).toString();
 
             window.addEventListener('load', function () {
                 navigator.serviceWorker.register(swUrl).then(function (reg) {
@@ -83,7 +88,6 @@
                 });
             });
 
-            // Auto-reload when the new SW takes control
             var refreshing = false;
             navigator.serviceWorker.addEventListener('controllerchange', function () {
                 if (refreshing) return;
@@ -93,8 +97,7 @@
         })();
     </script>
 
-
-    <!-- Blazor -->
+    <!-- Blazor WebAssembly bootstrap -->
     <script src="_framework/blazor.webassembly.js" defer></script>
 </body>
 </html>

@@ -1,0 +1,191 @@
+﻿@page "/admin"
+@using Microsoft.AspNetCore.Components.Forms
+@using System.Text.Json
+@using PinTheHighwayCrash.Models
+@inject SettingsService Settings
+@inject ISettingsStore Store
+@inject IJSRuntime JS
+
+<h1 class="text-2xl font-bold mb-4">Admin</h1>
+
+@if (!_unlocked)
+{
+    <AdminLock OnUnlocked="HandleUnlocked" />
+}
+else
+{
+    <EditForm Model="_model" OnValidSubmit="SaveAsync">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <div class="tabs">
+            <button type="button" class="@TabClass("general")" @onclick="ShowGeneral">General</button>
+            <button type="button" class="@TabClass("cooldowns")" @onclick="ShowCooldowns">Cooldowns</button>
+            <button type="button" class="@TabClass("messages")" @onclick="ShowMessages">Messages</button>
+            <button type="button" class="@TabClass("data")" @onclick="ShowData">Data</button>
+            <button type="button" class="@TabClass("about")" @onclick="ShowAbout">About</button>
+        </div>
+
+        @switch (_tab)
+        {
+            case "general":
+                <div class="card">
+                    <label>
+                        Geofence (km)
+                        <InputNumber @bind-Value="_model.GeofenceKm" />
+                    </label>
+                    <label class="mt-2">
+                        <InputCheckbox @bind-Value="_model.TelemetryEnabled" /> Telemetry enabled
+                    </label>
+                    <label class="mt-2">
+                        <InputCheckbox @bind-Value="_model.TestMode" /> Test mode
+                    </label>
+                </div>
+                break;
+
+            case "cooldowns":
+                <div class="card">
+                    <label>
+                        Report cooldown (s)
+                        <InputNumber @bind-Value="_model.Cooldowns.ReportSeconds" />
+                    </label>
+                    <label class="mt-2">
+                        Notify cooldown (s)
+                        <InputNumber @bind-Value="_model.Cooldowns.NotifySeconds" />
+                    </label>
+                </div>
+                break;
+
+            case "messages":
+                <div class="card">
+                    <div class="mb-2 d-flex gap-4">
+                        <label><InputCheckbox @bind-Value="_model.Channels.Call" /> Call</label>
+                        <label><InputCheckbox @bind-Value="_model.Channels.Sms" /> SMS</label>
+                        <label><InputCheckbox @bind-Value="_model.Channels.Email" /> Email</label>
+                        <label><InputCheckbox @bind-Value="_model.Channels.WhatsApp" /> WhatsApp</label>
+                    </div>
+                    <label>
+                        SMS template
+                        <InputTextArea @bind-Value="_model.Templates.Sms" rows="3" />
+                    </label>
+                    <label class="mt-2">
+                        Email template
+                        <InputTextArea @bind-Value="_model.Templates.Email" rows="6" />
+                    </label>
+                    <p class="text-sm text-muted mt-2">
+                        Variables: {location} {coords} {timestamp} {details}
+                    </p>
+                </div>
+                break;
+
+            case "data":
+                <div class="card">
+                    <button type="button" class="btn btn-outline-primary" @onclick="ExportAsync">Export settings</button>
+                    <label class="btn btn-outline-secondary ms-2">
+                        Import settings
+                        <input @ref="_importInputRef" type="file" accept="application/json" style="display:none" @onchange="ImportAsync" />
+                    </label>
+                    <button type="button" class="btn btn-outline-danger ms-2" @onclick="ResetAsync">Reset to defaults</button>
+                </div>
+                break;
+
+            case "about":
+                <div class="card">
+                    <p><strong>Settings schema:</strong> @_model.Schema</p>
+                    <p><strong>App version:</strong> @AssemblyVersion</p>
+                    <p class="text-sm text-muted mt-2">
+                        Settings are stored locally (IndexedDB) and never leave this device.
+                    </p>
+                </div>
+                break;
+        }
+
+        <div class="mt-4 d-flex gap-2">
+            <button class="btn btn-primary" type="submit">Save</button>
+            <button class="btn btn-secondary" type="button" @onclick="ReloadAsync">Reload</button>
+        </div>
+    </EditForm>
+}
+
+@code {
+    private bool _unlocked;
+    private string _tab = "general";
+    private AdminSettings _model = new();
+    private ElementReference _importInputRef;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Settings.InitializeAsync();
+        _model = Clone(Settings.Current);
+    }
+
+    private async Task HandleUnlocked()
+    {
+        _unlocked = true;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task SaveAsync() => await Settings.UpdateAsync(_model);
+
+    private async Task ReloadAsync()
+    {
+        await Settings.InitializeAsync();
+        _model = Clone(Settings.Current);
+    }
+
+    private Task ExportAsync()
+    {
+        var json = JsonSerializer.Serialize(_model, new JsonSerializerOptions { WriteIndented = true });
+        var bytes = System.Text.Encoding.UTF8.GetBytes(json);
+        var fileName = $"pthc-admin-settings-{DateTimeOffset.Now:yyyyMMddHHmmss}.json";
+        return BlazorDownloadFile(fileName, "application/json", bytes);
+    }
+
+    private async Task ImportAsync(ChangeEventArgs e)
+    {
+        // Requires wwwroot/js/fileHelpers.js and index.html: <script src="js/fileHelpers.js" defer></script>
+        var text = await JS.InvokeAsync<string>("FileHelpers.readAsTextFromInput", _importInputRef);
+        if (string.IsNullOrWhiteSpace(text)) return;
+
+        AdminSettings? imported = null;
+        try
+        {
+            imported = JsonSerializer.Deserialize<AdminSettings>(text, new JsonSerializerOptions());
+        }
+        catch
+        {
+            // Optionally show an error toast/alert here
+            return;
+        }
+        if (imported is null) return;
+
+        _model = imported;
+        await SaveAsync();
+    }
+
+    private async Task ResetAsync()
+    {
+        _model = new AdminSettings();
+        await SaveAsync();
+    }
+
+    private static AdminSettings Clone(AdminSettings s)
+    {
+        var json = JsonSerializer.Serialize(s, new JsonSerializerOptions());
+        return JsonSerializer.Deserialize<AdminSettings>(json)!;
+    }
+
+    private string TabClass(string id) => _tab == id ? "tab tab-active" : "tab";
+
+    // Tab handlers
+    private void ShowGeneral() => _tab = "general";
+    private void ShowCooldowns() => _tab = "cooldowns";
+    private void ShowMessages() => _tab = "messages";
+    private void ShowData() => _tab = "data";
+    private void ShowAbout() => _tab = "about";
+
+    private string AssemblyVersion => typeof(Program).Assembly.GetName().Version?.ToString() ?? "unknown";
+
+    private Task BlazorDownloadFile(string name, string mime, byte[] data) =>
+        JS.InvokeVoidAsync("BlazorFileDownload.save", name, mime, Convert.ToBase64String(data)).AsTask();
+}

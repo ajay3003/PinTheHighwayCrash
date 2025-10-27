@@ -1,5 +1,5 @@
 ﻿// -----------------------------------------------------------------------------
-// adminCrypto.js
+// adminCrypto.js (ES module)
 // AES-GCM + PBKDF2 helpers (browser-native, no server needed)
 // Compatible with AdminCryptoJs (.NET interop layer)
 // -----------------------------------------------------------------------------
@@ -16,6 +16,7 @@ export function randomB64(len = 16) {
 }
 
 // --- PBKDF2-derived Key Encryption Key (KEK) ----------------------------------
+// NOTE: usages changed to ["encrypt","decrypt"] because we use AES-GCM encrypt/decrypt.
 export async function deriveKEK(pass, saltB64, iterations = 300000) {
     const enc = new TextEncoder();
     const salt = a2b(saltB64);
@@ -24,8 +25,8 @@ export async function deriveKEK(pass, saltB64, iterations = 300000) {
         { name: "PBKDF2", hash: "SHA-256", salt, iterations },
         mat,
         { name: "AES-GCM", length: 256 },
-        true,
-        ["wrapKey", "unwrapKey"]
+        false, // not extractable (kek)
+        ["encrypt", "decrypt"]
     );
 }
 
@@ -60,7 +61,7 @@ export async function unwrapKey(kek, wrapped) {
         const raw = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, kek, ct);
         const key = await crypto.subtle.importKey("raw", raw, { name: "AES-GCM" }, true, ["encrypt", "decrypt"]);
         return key;
-    } catch (e) {
+    } catch {
         throw new Error("Failed to unwrap key (wrong passphrase or corrupted data).");
     }
 }

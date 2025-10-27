@@ -48,10 +48,6 @@ builder.Services.AddScoped<ISettingsStore, EncryptedSettingsStore>();
 // SettingsService orchestrates load/save and exposes Current settings
 builder.Services.AddScoped<SettingsService>();
 
-// ---- If you need to keep the legacy plaintext store for migration/testing, you could swap back: ----
-// builder.Services.AddScoped<ISettingsStore, IndexedDbSettingsStore>();
-// builder.Services.AddScoped<AdminStoreJs>(); // only needed by legacy store
-
 // ---------------- Logging ----------------
 var min = builder.Configuration["Logging:LogLevel:Default"];
 if (Enum.TryParse<LogLevel>(min, out var configuredLevel))

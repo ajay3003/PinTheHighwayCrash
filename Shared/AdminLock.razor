@@ -1,19 +1,22 @@
 ﻿@using Microsoft.AspNetCore.Components
 @using Microsoft.AspNetCore.Components.Forms
+@using System.ComponentModel.DataAnnotations
 @using PinTheHighwayCrash.Services
+@using PinTheHighwayCrash.Models
 
-@inject EncryptedSettingsStore EncStore
+@inject ISettingsStore EncStore
 @inject AdminCryptoJs Crypto
 
 @if (_enrolling)
 {
-    <EditForm OnValidSubmit="EnrollAsync">
+    <EditForm EditContext="_enrollCtx" OnValidSubmit="EnrollAsync">
+        <DataAnnotationsValidator />
         <div class="card p-3" style="max-width:420px">
             <h5 class="mb-2">Set Admin Passphrase</h5>
             <p class="text-muted mb-3">This protects local settings on this device.</p>
 
-            <InputText @bind-Value="_pass1" class="form-control mb-2" type="password" placeholder="Passphrase (min 8 chars)" />
-            <InputText @bind-Value="_pass2" class="form-control mb-2" type="password" placeholder="Confirm passphrase" />
+            <InputText @bind-Value="_enroll.Pass1" class="form-control mb-2" type="password" placeholder="Passphrase (min 8 chars)" />
+            <InputText @bind-Value="_enroll.Pass2" class="form-control mb-2" type="password" placeholder="Confirm passphrase" />
 
             @if (!string.IsNullOrWhiteSpace(_error))
             {
@@ -26,11 +29,12 @@
 }
 else
 {
-    <EditForm OnValidSubmit="UnlockAsync">
+    <EditForm EditContext="_unlockCtx" OnValidSubmit="UnlockAsync">
+        <DataAnnotationsValidator />
         <div class="card p-3" style="max-width:420px">
             <h5 class="mb-2">Admin Unlock</h5>
 
-            <InputText @bind-Value="_pass" class="form-control mb-2" type="password" placeholder="Enter passphrase" />
+            <InputText @bind-Value="_unlock.Passphrase" class="form-control mb-2" type="password" placeholder="Enter passphrase" />
 
             @if (!string.IsNullOrWhiteSpace(_status))
             {
@@ -51,11 +55,20 @@ else
 
     private bool _enrolling;
     private bool _lockedOut;
-    private string? _pass1, _pass2, _pass;
     private string? _error, _status;
+
+    // View-models + edit contexts
+    private readonly EnrollVm _enroll = new();
+    private EditContext _enrollCtx = default!;
+    private readonly UnlockVm _unlock = new();
+    private EditContext _unlockCtx = default!;
 
     protected override async Task OnInitializedAsync()
     {
+        // initialize EditContexts
+        _enrollCtx = new EditContext(_enroll);
+        _unlockCtx = new EditContext(_unlock);
+
         var has = await EncStore.HasAdminLockAsync();
         _enrolling = !has;
         if (!has)
@@ -72,12 +85,12 @@ else
     {
         _error = null;
 
-        if (string.IsNullOrWhiteSpace(_pass1) || _pass1.Length < 8)
+        if (string.IsNullOrWhiteSpace(_enroll.Pass1) || _enroll.Pass1.Length < 8)
         {
             _error = "Use at least 8 characters.";
             return;
         }
-        if (_pass1 != _pass2)
+        if (_enroll.Pass1 != _enroll.Pass2)
         {
             _error = "Passphrases do not match.";
             return;
@@ -87,21 +100,21 @@ else
         var salt = await Crypto.RandomB64(16);
         var iterations = 300_000;
 
-        var kek = await Crypto.DeriveKek(_pass1!, salt, iterations);
+        var kek = await Crypto.DeriveKek(_enroll.Pass1!, salt, iterations);
         var dataKey = await Crypto.GenDataKey();
         var wrapped = await Crypto.WrapKey(kek, dataKey);
 
-        // Hold decrypted data key in-memory while unlocked
         DataKeyHolder.Ref = dataKey;
 
-        // Persist lock metadata (salt/iterations/wrapped key, reset fails)
         var wrappedJson = System.Text.Json.JsonSerializer.Serialize(wrapped);
         await EncStore.SetAdminLockAsync(salt, wrappedJson, iterations);
 
         _enrolling = false;
         _status = null;
         _error = null;
+        _enroll.Pass1 = _enroll.Pass2 = string.Empty; // clear secrets
         await OnUnlocked.InvokeAsync();
+        await InvokeAsync(StateHasChanged);
     }
 
     private async Task UnlockAsync()
@@ -124,28 +137,30 @@ else
 
         try
         {
-            var kek = await Crypto.DeriveKek(_pass ?? string.Empty, info.SaltBase64, info.Iterations);
+            var pass = _unlock.Passphrase ?? string.Empty;
+            var kek = await Crypto.DeriveKek(pass, info.SaltBase64, info.Iterations);
             var wrapped = new { iv = info.WrapIv, wrapped = info.WrappedKey };
             var dataKey = await Crypto.UnwrapKey(kek, wrapped);
 
-            // Success: store data key reference and clear fails
             DataKeyHolder.Ref = dataKey;
             await EncStore.UpdateFailsAsync(0, null);
 
             _lockedOut = false;
             _error = null;
             _status = null;
+            _unlock.Passphrase = string.Empty; // clear secret
             await OnUnlocked.InvokeAsync();
+            await InvokeAsync(StateHasChanged);
         }
         catch
         {
-            // Failed attempt: backoff
             var newFails = info.Fails + 1;
             var nowIso = DateTime.UtcNow.ToString("o");
             await EncStore.UpdateFailsAsync(newFails, nowIso);
 
             _error = "Wrong passphrase.";
             await CheckBackoffAsync();
+            await InvokeAsync(StateHasChanged);
         }
     }
 
@@ -192,5 +207,21 @@ else
 
         _status = null;
         return Task.FromResult(false);
+    }
+
+    // View-models
+    private sealed class EnrollVm
+    {
+        [Required, MinLength(8)]
+        public string Pass1 { get; set; } = string.Empty;
+
+        [Required, Compare(nameof(Pass1), ErrorMessage = "Passphrases do not match.")]
+        public string Pass2 { get; set; } = string.Empty;
+    }
+
+    private sealed class UnlockVm
+    {
+        [Required]
+        public string Passphrase { get; set; } = string.Empty;
     }
 }

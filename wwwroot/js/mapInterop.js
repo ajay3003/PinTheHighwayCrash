@@ -102,10 +102,26 @@ window.mapInterop = (function () {
         }
     }
 
+    function safeInvokeDotNet(method, arg1, arg2) {
+        try {
+            if (_dotnetRef && typeof _dotnetRef.invokeMethodAsync === "function") {
+                _dotnetRef.invokeMethodAsync(method, arg1, arg2);
+            }
+        } catch (_) { /* swallow — avoid unhandled promise rejections */ }
+    }
+
     // Initialize Leaflet map
     function initMap(divId, lat, lng, dotnetRef, opts) {
         ensureLeaflet();
-        _dotnetRef = dotnetRef;
+        _dotnetRef = dotnetRef || null;
+
+        // DOM guard: bail quietly if container isn't in the DOM yet
+        var el = document.getElementById(divId);
+        if (!el) {
+            // Avoid throwing; Blazor may call again after render
+            console.warn("[mapInterop] map container not found:", divId);
+            return false;
+        }
 
         // If re-initialized, dispose previous instance
         if (map) {
@@ -119,7 +135,7 @@ window.mapInterop = (function () {
         var detectRetina = opts.detectRetina !== false; // default true
         var scrollZoom = opts.scrollWheelZoom !== false; // default true
 
-        map = L.map(divId, {
+        map = L.map(el, {
             zoomControl: true,
             scrollWheelZoom: scrollZoom
         }).setView([lat, lng], initialZoom);
@@ -134,29 +150,33 @@ window.mapInterop = (function () {
 
         marker.on("dragend", function () {
             var p = marker.getLatLng();
-            if (_dotnetRef) _dotnetRef.invokeMethodAsync("OnMapMarkerMoved", p.lat, p.lng);
+            safeInvokeDotNet("OnMapMarkerMoved", p.lat, p.lng);
         });
 
         map.on("click", function (e) {
             marker.setLatLng(e.latlng);
-            if (_dotnetRef) _dotnetRef.invokeMethodAsync("OnMapMarkerMoved", e.latlng.lat, e.latlng.lng);
+            safeInvokeDotNet("OnMapMarkerMoved", e.latlng.lat, e.latlng.lng);
         });
 
         // Handle container resize (e.g., after sidebar open)
         setTimeout(function () {
-            if (map) map.invalidateSize();
+            try { if (map) map.invalidateSize(); } catch (_) { /* no-op */ }
         }, 0);
+
+        return true;
     }
 
     // Center map on given coordinates (keep current zoom)
     function setView(lat, lng) {
-        if (map) map.setView([lat, lng], map.getZoom());
-        if (marker) marker.setLatLng([lat, lng]);
+        try {
+            if (map) map.setView([lat, lng], map.getZoom());
+            if (marker) marker.setLatLng([lat, lng]);
+        } catch (_) { /* no-op */ }
     }
 
     // Optional helpers
     function setPin(lat, lng) {
-        if (marker) marker.setLatLng([lat, lng]);
+        try { if (marker) marker.setLatLng([lat, lng]); } catch (_) { /* no-op */ }
     }
 
     function getPin() {

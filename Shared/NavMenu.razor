@@ -4,7 +4,8 @@
 
 <nav class="d-flex flex-column flex-shrink-0 p-3 bg-dark text-white min-vh-100 shadow-sm nav-menu">
     <!-- Brand -->
-    <a href="/" class="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-white text-decoration-none">
+    <!-- Changed href="/" → href="" to respect <base href="/PinTheHighwayCrash/"> -->
+    <a href="" class="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-white text-decoration-none">
         <span class="fs-4 fw-semibold">🚨 PinTheHighwayCrash</span>
     </a>
     <hr class="border-secondary" />
@@ -12,8 +13,9 @@
     <!-- Navigation links -->
     <ul class="nav nav-pills flex-column mb-auto">
         <li class="nav-item mb-1">
+            <!-- Changed href="/" → href="" for correct project-base navigation -->
             <NavLink class="nav-link text-white d-flex align-items-center gap-2"
-                     href="/" Match="NavLinkMatch.All">
+                     href="" Match="NavLinkMatch.All">
                 <i class="bi bi-house-fill"></i> Home
             </NavLink>
         </li>

@@ -102,48 +102,91 @@ else
                   placeholder="e.g., multi-vehicle crash, fire, blockage, injuries"></textarea>
     </div>
 
-    <div class="d-flex flex-column gap-2">
+    @* ----------------------- ACTION PANEL ----------------------- *@
+    <div class="d-grid gap-2 mt-3">
         @* --- CALL --- *@
         @if (_enableCall)
         {
-            <CooldownButton ActionKey="call"
-                            Css="btn btn-danger"
-                            Text=@($"📞 Call {_phone}")
-                            OnClick="CallEmergency" />
+            if (CanSend)
+            {
+                <CooldownButton ActionKey="call"
+                                Css="btn btn-danger w-100 btn-lg fw-bold"
+                                Text=@($"📞 Call {_phone}")
+                                OnClick="CallEmergency" />
+            }
+            else
+            {
+                <button class="btn btn-danger w-100 btn-lg fw-bold"
+                        disabled
+                        title="You must be on a verified road and near the pinned location.">
+                    📞 Call @_phone
+                </button>
+            }
         }
 
         @* --- SMS --- *@
         @if (_enableSms)
         {
-            <CooldownButton ActionKey="sms"
-                            Css="btn btn-warning"
-                            Text="✉️ SMS"
-                            OnClick="SendSms" />
+            if (CanSend)
+            {
+                <CooldownButton ActionKey="sms"
+                                Css="btn btn-warning w-100 btn-lg fw-bold text-dark"
+                                Text="✉️ SMS"
+                                OnClick="SendSms" />
+            }
+            else
+            {
+                <button class="btn btn-warning w-100 btn-lg fw-bold text-dark"
+                        disabled
+                        title="You must be on a verified road and near the pinned location.">
+                    ✉️ SMS
+                </button>
+            }
         }
 
         @* --- WHATSAPP --- *@
         @if (_enableWhatsApp)
         {
-            <CooldownButton ActionKey="whatsapp"
-                            Css="btn btn-success"
-                            Text="💬 WhatsApp"
-                            OnClick="SendWhatsApp" />
+            if (CanSend)
+            {
+                <CooldownButton ActionKey="whatsapp"
+                                Css="btn btn-success w-100 btn-lg fw-bold"
+                                Text="💬 WhatsApp"
+                                OnClick="SendWhatsApp" />
+            }
+            else
+            {
+                <button class="btn btn-success w-100 btn-lg fw-bold"
+                        disabled
+                        title="You must be on a verified road and near the pinned location.">
+                    💬 WhatsApp
+                </button>
+            }
         }
 
         @* --- EMAIL --- *@
         @if (_enableEmail)
         {
-            <CooldownButton ActionKey="email"
-                            Css="btn btn-outline-info"
-                            Text="📧 Email"
-                            OnClick="SendEmail" />
+            if (CanSend)
+            {
+                <CooldownButton ActionKey="email"
+                                Css="btn btn-outline-info w-100 btn-lg fw-bold"
+                                Text="📧 Email"
+                                OnClick="SendEmail" />
+            }
+            else
+            {
+                <button class="btn btn-outline-info w-100 btn-lg fw-bold"
+                        disabled
+                        title="You must be on a verified road and near the pinned location.">
+                    📧 Email
+                </button>
+            }
         }
 
-        <div class="mt-2">
-            <button class="btn btn-outline-secondary" @onclick="CopyReport">
-                📋 Copy Text
-            </button>
-        </div>
+        <button class="btn btn-outline-secondary w-100" @onclick="CopyReport">
+            📋 Copy Text
+        </button>
     </div>
 
     @if (!string.IsNullOrWhiteSpace(_submitMsg))
@@ -333,7 +376,7 @@ else
         if (!m.Success) return false;
         if (!double.TryParse(m.Groups[1].Value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out lat)) return false;
         if (!double.TryParse(m.Groups[2].Value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out lng)) return false;
-        return lat is >= -90 and <= 180 && lng is >= -180 and <= 180;
+        return lat is >= -90 and <= 90 && lng is >= -180 and <= 180;
     }
 
     private static bool TryExtractLatLngFromCommonMapsLinks(string raw, out double lat, out double lng)

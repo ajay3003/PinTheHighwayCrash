@@ -6,6 +6,7 @@
 @inject PinTheHighwayCrash.Services.ICooldownService CooldownSvc
 
 <button class="@Css"
+        role="button"
         disabled="@_disabled"
         aria-disabled="@_disabled"
         title="@_tooltip"
@@ -19,7 +20,9 @@
     [Parameter, EditorRequired] public string ActionKey { get; set; } = default!;
     [Parameter, EditorRequired] public EventCallback OnClick { get; set; }
     [Parameter, EditorRequired] public string Text { get; set; } = default!;
-    [Parameter] public string Css { get; set; } = "btn btn-primary";
+
+    /// <summary>CSS classes for the button element.</summary>
+    [Parameter] public string Css { get; set; } = "btn btn-primary w-100 btn-lg fw-bold";
 
     /// <summary>
     /// Optional per-button override for cooldown seconds (useful for demos/tests).
@@ -36,21 +39,38 @@
     {
         await RefreshStateAsync();
 
-        _timer = new(250) { AutoReset = true, Enabled = true };
-        _timer.Elapsed += async (_, __) =>
+        // light polling to keep countdown fresh
+        _timer = new System.Timers.Timer(250) { AutoReset = true, Enabled = true };
+        _timer.Elapsed += OnTimerElapsed;
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // ActionKey/Text/Css may change dynamically
+        await RefreshStateAsync();
+    }
+
+    private async void OnTimerElapsed(object? sender, System.Timers.ElapsedEventArgs e)
+    {
+        try
         {
             await InvokeAsync(async () =>
             {
                 await RefreshStateAsync();
                 StateHasChanged();
             });
-        };
+        }
+        catch
+        {
+            // component may be disposed — ignore
+        }
     }
 
     private async Task RefreshStateAsync()
     {
         var ui = Cooldown.CurrentValue.Ui;
         var remaining = await CooldownSvc.GetRemainingAsync(ActionKey);
+
         _disabled = remaining > TimeSpan.Zero && ui.DisableButtonsDuringCooldown;
 
         if (remaining > TimeSpan.Zero)
@@ -68,7 +88,9 @@
     private static string Format(TimeSpan t, string format)
     {
         var total = (int)Math.Ceiling(t.TotalSeconds);
-        if (format == "ss") return $"{total}s";
+        if (string.Equals(format, "ss", StringComparison.OrdinalIgnoreCase))
+            return $"{total}s";
+
         var mm = total / 60;
         var ss = total % 60;
         return $"{mm:D2}:{ss:D2}";
@@ -76,6 +98,7 @@
 
     private async Task HandleClick()
     {
+        // If still cooling down, optionally toast/log and return
         if (await CooldownSvc.IsCoolingDownAsync(ActionKey))
         {
             if (Cooldown.CurrentValue.Ui.ToastOnAttemptDuringCooldown)
@@ -86,12 +109,20 @@
             return;
         }
 
-        // Begin cooldown (honors TestMode + per-action values unless OverrideSeconds is provided)
-        if (await CooldownSvc.TryBeginAsync(ActionKey, OverrideSeconds) && OnClick.HasDelegate)
+        // Begin cooldown (respects TestMode + PerAction; OverrideSeconds if provided)
+        if (await CooldownSvc.TryBeginAsync(ActionKey, OverrideSeconds))
         {
-            await OnClick.InvokeAsync();
+            if (OnClick.HasDelegate)
+                await OnClick.InvokeAsync();
         }
     }
 
-    public void Dispose() => _timer?.Dispose();
+    public void Dispose()
+    {
+        if (_timer is not null)
+        {
+            try { _timer.Elapsed -= OnTimerElapsed; } catch { }
+            _timer.Dispose();
+        }
+    }
 }

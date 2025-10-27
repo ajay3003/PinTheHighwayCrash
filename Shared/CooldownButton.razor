@@ -1,0 +1,97 @@
+﻿@* PinTheHighwayCrash/Shared/CooldownButton.razor *@
+@implements IDisposable
+@using Microsoft.Extensions.Options
+@using Microsoft.AspNetCore.Components
+@inject IOptionsMonitor<PinTheHighwayCrash.Models.CooldownOptions> Cooldown
+@inject PinTheHighwayCrash.Services.ICooldownService CooldownSvc
+
+<button class="@Css"
+        disabled="@_disabled"
+        aria-disabled="@_disabled"
+        title="@_tooltip"
+        @onclick="HandleClick">
+    @(_disabled && Cooldown.CurrentValue.Ui.DisableButtonsDuringCooldown
+        ? Cooldown.CurrentValue.Ui.DisabledButtonTextTemplate.Replace("{remaining}", _remaining)
+        : Text)
+</button>
+
+@code {
+    [Parameter, EditorRequired] public string ActionKey { get; set; } = default!;
+    [Parameter, EditorRequired] public EventCallback OnClick { get; set; }
+    [Parameter, EditorRequired] public string Text { get; set; } = default!;
+    [Parameter] public string Css { get; set; } = "btn btn-primary";
+
+    /// <summary>
+    /// Optional per-button override for cooldown seconds (useful for demos/tests).
+    /// If null, durations come from configuration.
+    /// </summary>
+    [Parameter] public int? OverrideSeconds { get; set; }
+
+    private bool _disabled;
+    private string _remaining = "";
+    private string _tooltip = "";
+    private System.Timers.Timer? _timer;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RefreshStateAsync();
+
+        _timer = new(250) { AutoReset = true, Enabled = true };
+        _timer.Elapsed += async (_, __) =>
+        {
+            await InvokeAsync(async () =>
+            {
+                await RefreshStateAsync();
+                StateHasChanged();
+            });
+        };
+    }
+
+    private async Task RefreshStateAsync()
+    {
+        var ui = Cooldown.CurrentValue.Ui;
+        var remaining = await CooldownSvc.GetRemainingAsync(ActionKey);
+        _disabled = remaining > TimeSpan.Zero && ui.DisableButtonsDuringCooldown;
+
+        if (remaining > TimeSpan.Zero)
+        {
+            _remaining = Format(remaining, ui.CountdownFormat);
+            _tooltip = ui.TooltipTemplate.Replace("{remaining}", _remaining);
+        }
+        else
+        {
+            _remaining = "";
+            _tooltip = "";
+        }
+    }
+
+    private static string Format(TimeSpan t, string format)
+    {
+        var total = (int)Math.Ceiling(t.TotalSeconds);
+        if (format == "ss") return $"{total}s";
+        var mm = total / 60;
+        var ss = total % 60;
+        return $"{mm:D2}:{ss:D2}";
+    }
+
+    private async Task HandleClick()
+    {
+        if (await CooldownSvc.IsCoolingDownAsync(ActionKey))
+        {
+            if (Cooldown.CurrentValue.Ui.ToastOnAttemptDuringCooldown)
+            {
+                Console.WriteLine(
+                    Cooldown.CurrentValue.Ui.ToastMessageTemplate.Replace("{remaining}", _remaining));
+            }
+            return;
+        }
+
+        // Begin cooldown (honors TestMode + per-action values unless OverrideSeconds is provided)
+        if (await CooldownSvc.TryBeginAsync(ActionKey, OverrideSeconds) && OnClick.HasDelegate)
+        {
+            await OnClick.InvokeAsync();
+        }
+    }
+
+    public void Dispose() => _timer?.Dispose();
+}

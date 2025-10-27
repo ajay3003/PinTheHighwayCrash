@@ -1,3 +1,4 @@
+<!-- wwwroot/index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -11,7 +12,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <link rel="manifest" href="manifest.webmanifest" />
 
-    <!-- Preconnects -->
+    <!-- Preconnects for performance -->
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <link rel="preconnect" href="https://unpkg.com" crossorigin>
     <link rel="preconnect" href="https://a.tile.openstreetmap.org" crossorigin>
@@ -44,7 +45,7 @@
 <body>
     <noscript>
         <div class="alert alert-danger m-3" role="alert">
-            JavaScript is required to run PinTheHighwayCrash.
+            JavaScript is required to run <strong>PinTheHighwayCrash</strong>.
         </div>
     </noscript>
 
@@ -61,22 +62,25 @@
             crossorigin=""
             defer></script>
 
-    <!-- Interop (before Blazor) -->
+    <!-- Interop scripts -->
     <script src="js/healthInterop.js" defer></script>
     <script src="js/mapInterop.js" defer></script>
     <script src="js/shareInterop.js" defer></script>
+    <script src="js/cooldown.js" defer></script>
 
     <!-- Service worker registration -->
     <script defer>
         (function () {
             if (!('serviceWorker' in navigator)) return;
             window.addEventListener('load', function () {
-                navigator.serviceWorker.register('/service-worker.js').catch(function () { /* ignore */ });
+                navigator.serviceWorker.register('/service-worker.js').catch(function (err) {
+                    console.warn('Service worker registration failed', err);
+                });
             });
         })();
     </script>
 
-    <!-- Blazor -->
+    <!-- Blazor bootstrap -->
     <script src="_framework/blazor.webassembly.js" defer></script>
 </body>
 </html>

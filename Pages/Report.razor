@@ -1,8 +1,10 @@
+@* PinTheHighwayCrash/Pages/Report.razor *@
 @page "/report"
 @using System.Text.RegularExpressions
 @using Microsoft.Extensions.Options
 @using PinTheHighwayCrash.Models
 @using PinTheHighwayCrash.Services
+@using PinTheHighwayCrash.Shared
 @inject IJSRuntime JS
 @inject GeoService Geo
 @inject VerificationService Verify
@@ -11,6 +13,8 @@
 @implements IDisposable
 
 <h1>Report Highway Crash (@_country)</h1>
+
+<OfflineBadge />
 
 @if (_loading)
 {
@@ -97,38 +101,89 @@ else
                   placeholder="e.g., multi-vehicle crash, fire, blockage, injuries"></textarea>
     </div>
 
-    <div class="d-flex flex-wrap gap-2">
+    <div class="d-flex flex-column gap-2">
+
+        @* --- CALL --- *@
         @if (_enableCall)
         {
-            <button class="btn btn-danger" disabled="@(!CanSend)" @onclick="CallEmergency">
-                📞 Call @_phone
-            </button>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <CooldownBadge ActionKey="call" />
+                @if (CanSend)
+                {
+                    <CooldownButton ActionKey="call"
+                                    Text=@($"📞 Call {_phone}")
+                                    OnClick="CallEmergency" />
+
+                }
+                else
+                {
+                    <button class="btn btn-danger" disabled>📞 Call @_phone</button>
+                }
+            </div>
         }
 
+        @* --- SMS --- *@
         @if (_enableSms)
         {
-            <button class="btn btn-warning" disabled="@(!CanSend)" @onclick="SendSms">
-                ✉️ SMS
-            </button>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <CooldownBadge ActionKey="sms" />
+                @if (CanSend)
+                {
+                    <CooldownButton ActionKey="sms"
+                                    Text="✉️ SMS"
+                                    Css="btn btn-warning"
+                                    OnClick="SendSms" />
+                }
+                else
+                {
+                    <button class="btn btn-warning" disabled>✉️ SMS</button>
+                }
+            </div>
         }
 
+        @* --- WHATSAPP --- *@
         @if (_enableWhatsApp)
         {
-            <button class="btn btn-success" disabled="@(!CanSend)" @onclick="SendWhatsApp">
-                💬 WhatsApp
-            </button>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <CooldownBadge ActionKey="whatsapp" />
+                @if (CanSend)
+                {
+                    <CooldownButton ActionKey="whatsapp"
+                                    Text="💬 WhatsApp"
+                                    Css="btn btn-success"
+                                    OnClick="SendWhatsApp" />
+                }
+                else
+                {
+                    <button class="btn btn-success" disabled>💬 WhatsApp</button>
+                }
+            </div>
         }
 
+        @* --- EMAIL --- *@
         @if (_enableEmail)
         {
-            <button class="btn btn-outline-info" disabled="@(!CanSend)" @onclick="SendEmail">
-                📧 Email
-            </button>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <CooldownBadge ActionKey="email" />
+                @if (CanSend)
+                {
+                    <CooldownButton ActionKey="email"
+                                    Text="📧 Email"
+                                    Css="btn btn-outline-info"
+                                    OnClick="SendEmail" />
+                }
+                else
+                {
+                    <button class="btn btn-outline-info" disabled>📧 Email</button>
+                }
+            </div>
         }
 
-        <button class="btn btn-outline-secondary" @onclick="CopyReport">
-            📋 Copy Text
-        </button>
+        <div class="mt-2">
+            <button class="btn btn-outline-secondary" @onclick="CopyReport">
+                📋 Copy Text
+            </button>
+        </div>
     </div>
 
     @if (!string.IsNullOrWhiteSpace(_submitMsg))
@@ -228,7 +283,6 @@ else
         if (_onRoadCheckEnabled)
             await VerifyIfOnRoad();
     }
-
 
     private async Task EnsureMapInitialized(double lat, double lng)
     {

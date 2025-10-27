@@ -1,11 +1,13 @@
 ﻿@* PinTheHighwayCrash/Shared/OfflineBadge.razor *@
+@implements IDisposable
 @using Microsoft.JSInterop
 @inject IJSRuntime JS
 
 @if (!_online)
 {
-    <div class="alert alert-warning py-2 px-3 small mb-2">
-        You are offline. Map tiles and verification may be limited. Phone/SMS still work with cellular signal.
+    <div class="alert alert-warning py-2 px-3 small mb-2 rounded-2 shadow-sm">
+        <strong>Offline mode:</strong> Map tiles and verification may be limited.
+        Phone and SMS still work if you have cellular signal.
     </div>
 }
 
@@ -15,15 +17,24 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // read initial state
         _online = await GetOnlineAsync();
-        // start lightweight poller (no extra JS needed)
         _cts = new CancellationTokenSource();
         _ = PollConnectivityAsync(_cts.Token);
     }
 
     private async Task<bool> GetOnlineAsync()
-        => await JS.InvokeAsync<bool>("eval", "navigator.onLine");
+    {
+        // navigator.onLine is fast and doesn’t need a full interop call chain
+        try
+        {
+            return await JS.InvokeAsync<bool>("eval", "navigator.onLine");
+        }
+        catch
+        {
+            // if JS runtime isn’t ready yet (e.g., prerender), assume online
+            return true;
+        }
+    }
 
     private async Task PollConnectivityAsync(CancellationToken token)
     {
@@ -40,7 +51,10 @@
                 await Task.Delay(2000, token); // check every 2s
             }
         }
-        catch (TaskCanceledException) { /* ignore */ }
+        catch (TaskCanceledException)
+        {
+            // normal on dispose
+        }
     }
 
     public void Dispose()

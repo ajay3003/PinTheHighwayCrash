@@ -102,81 +102,40 @@ else
     </div>
 
     <div class="d-flex flex-column gap-2">
-
         @* --- CALL --- *@
         @if (_enableCall)
         {
-            <div class="d-flex align-items-center gap-2 flex-wrap">
-                <CooldownBadge ActionKey="call" />
-                @if (CanSend)
-                {
-                    <CooldownButton ActionKey="call"
-                                    Text=@($"📞 Call {_phone}")
-                                    OnClick="CallEmergency" />
-
-                }
-                else
-                {
-                    <button class="btn btn-danger" disabled>📞 Call @_phone</button>
-                }
-            </div>
+            <CooldownButton ActionKey="call"
+                            Css="btn btn-danger"
+                            Text=@($"📞 Call {_phone}")
+                            OnClick="CallEmergency" />
         }
 
         @* --- SMS --- *@
         @if (_enableSms)
         {
-            <div class="d-flex align-items-center gap-2 flex-wrap">
-                <CooldownBadge ActionKey="sms" />
-                @if (CanSend)
-                {
-                    <CooldownButton ActionKey="sms"
-                                    Text="✉️ SMS"
-                                    Css="btn btn-warning"
-                                    OnClick="SendSms" />
-                }
-                else
-                {
-                    <button class="btn btn-warning" disabled>✉️ SMS</button>
-                }
-            </div>
+            <CooldownButton ActionKey="sms"
+                            Css="btn btn-warning"
+                            Text="✉️ SMS"
+                            OnClick="SendSms" />
         }
 
         @* --- WHATSAPP --- *@
         @if (_enableWhatsApp)
         {
-            <div class="d-flex align-items-center gap-2 flex-wrap">
-                <CooldownBadge ActionKey="whatsapp" />
-                @if (CanSend)
-                {
-                    <CooldownButton ActionKey="whatsapp"
-                                    Text="💬 WhatsApp"
-                                    Css="btn btn-success"
-                                    OnClick="SendWhatsApp" />
-                }
-                else
-                {
-                    <button class="btn btn-success" disabled>💬 WhatsApp</button>
-                }
-            </div>
+            <CooldownButton ActionKey="whatsapp"
+                            Css="btn btn-success"
+                            Text="💬 WhatsApp"
+                            OnClick="SendWhatsApp" />
         }
 
         @* --- EMAIL --- *@
         @if (_enableEmail)
         {
-            <div class="d-flex align-items-center gap-2 flex-wrap">
-                <CooldownBadge ActionKey="email" />
-                @if (CanSend)
-                {
-                    <CooldownButton ActionKey="email"
-                                    Text="📧 Email"
-                                    Css="btn btn-outline-info"
-                                    OnClick="SendEmail" />
-                }
-                else
-                {
-                    <button class="btn btn-outline-info" disabled>📧 Email</button>
-                }
-            </div>
+            <CooldownButton ActionKey="email"
+                            Css="btn btn-outline-info"
+                            Text="📧 Email"
+                            OnClick="SendEmail" />
         }
 
         <div class="mt-2">
@@ -223,7 +182,6 @@ else
 
     private DotNetObjectReference<Report>? _selfRef;
 
-    // Not actually awaiting anything — return CompletedTask to avoid compiler warning
     protected override Task OnInitializedAsync()
     {
         var e = EmergencyOpts.Value;
@@ -273,11 +231,9 @@ else
 
         UpdateDistance();
 
-        // 👇 render the map <div> first
         _loading = false;
         StateHasChanged();
 
-        // 👇 now the container exists: safe to init Leaflet
         await EnsureMapInitialized(_pinLat, _pinLng);
 
         if (_onRoadCheckEnabled)
@@ -344,21 +300,21 @@ else
             return;
         }
 
-        // 1) Strict lat,lng (handles "12.34,56.78" or "12.34 56.78")
+        // 1) Strict lat,lng
         if (TryParseLatLng(raw, out var lat, out var lng))
         {
             await ApplyManualLocation(lat, lng, "Using pasted coordinates.");
             return;
         }
 
-        // 2) Extract from common Google Maps links (?q=lat,lng or /@lat,lng,zoomz)
+        // 2) Extract from common Google Maps links
         if (TryExtractLatLngFromCommonMapsLinks(raw, out lat, out lng))
         {
             await ApplyManualLocation(lat, lng, "Using coordinates from link.");
             return;
         }
 
-        // 3) Fallback to forward geocoding (Plus Codes / place text / other links)
+        // 3) Fallback to forward geocoding
         var hit = await Verify.ForwardGeocodeAsync(raw);
         if (hit is not null)
         {

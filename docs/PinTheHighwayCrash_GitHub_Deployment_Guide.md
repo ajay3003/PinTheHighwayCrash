@@ -22,7 +22,7 @@ This guide explains how to **deploy your Blazor WebAssembly app** (`PinTheHighwa
 In your project root, run:
 
 ```bash
-dotnet publish -c Release -o build
+dotnet publish -c Release -p:PublishDir=".\build\"
 ```
 
 This generates a static site build under `/build/wwwroot/`.

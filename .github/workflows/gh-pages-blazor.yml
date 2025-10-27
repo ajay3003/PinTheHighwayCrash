@@ -1,0 +1,65 @@
+name: Deploy Blazor WASM to GitHub Pages
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+env:
+  DOTNET_VERSION: '8.0.x'                       # use 9.0.x if your project targets .NET 9
+  PROJECT_PATH: 'PinTheHighwayCrash/PinTheHighwayCrash.csproj'  # <-- update if different
+  PUBLISH_DIR: './build/'
+  PAGES_DIR: './build/wwwroot'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+          cache: true
+
+      - name: Restore
+        run: dotnet restore "${{ env.PROJECT_PATH }}"
+
+      - name: Publish (Release)
+        run: dotnet publish "${{ env.PROJECT_PATH }}" -c Release -p:PublishDir="${{ env.PUBLISH_DIR }}"
+
+      # Make SPA work on Pages + avoid Jekyll processing
+      - name: Tweak base href for project site
+        run: |
+          REPO_NAME="${{ github.event.repository.name }}"
+          INDEX_FILE="${{ env.PAGES_DIR }}/index.html"
+          sed -i "s#<base href=\"/\" />#<base href=\"/${REPO_NAME}/\" />#g" "$INDEX_FILE"
+      - name: Add 404.html (SPA fallback) and .nojekyll
+        run: |
+          cp "${{ env.PAGES_DIR }}/index.html" "${{ env.PAGES_DIR }}/404.html"
+          touch "${{ env.PAGES_DIR }}/.nojekyll"
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ${{ env.PAGES_DIR }}
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

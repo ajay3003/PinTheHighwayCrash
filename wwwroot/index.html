@@ -5,14 +5,16 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>PinTheHighwayCrash</title>
+
+    <!-- IMPORTANT: set to "/" or your GH Pages subpath like "/PinTheHighwayCrash/" -->
     <base href="/" />
 
     <!-- Theme / PWA -->
     <meta name="theme-color" content="#0d6efd" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="manifest" href="manifest.webmanifest?v=2025-10-27.1" />
 
-    <!-- Preconnects for performance -->
+    <!-- Preconnects -->
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <link rel="preconnect" href="https://unpkg.com" crossorigin>
     <link rel="preconnect" href="https://a.tile.openstreetmap.org" crossorigin>
@@ -29,7 +31,7 @@
           rel="stylesheet"
           integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
           crossorigin="" />
-    <link href="css/app.css" rel="stylesheet" />
+    <link href="css/app.css?v=2025-10-27.1" rel="stylesheet" />
 
     <style>
         #app {
@@ -56,31 +58,56 @@
         </div>
     </div>
 
-    <!-- JS order -->
+    <!-- Libraries -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
             integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
             crossorigin=""
             defer></script>
 
-    <!-- Interop scripts -->
-    <script src="js/healthInterop.js" defer></script>
-    <script src="js/mapInterop.js" defer></script>
-    <script src="js/shareInterop.js" defer></script>
-    <script src="js/cooldown.js" defer></script>
+    <!-- Interop scripts (cache-busted with ?v=) -->
+    <script src="js/healthInterop.js?v=2025-10-27.1" defer></script>
+    <script src="js/mapInterop.js?v=2025-10-27.1" defer></script>
+    <script src="js/shareInterop.js?v=2025-10-27.1" defer></script>
+    <script src="js/cooldown.js?v=2025-10-27.1" defer></script>
 
-    <!-- Service worker registration -->
-    <script defer>
+    <!-- Service worker registration (subpath-safe + instant updates) -->
+    <script>
         (function () {
             if (!('serviceWorker' in navigator)) return;
+
+            // Use <base href> to compute correct scope (works on GH Pages subpaths)
+            var baseEl = document.querySelector('base');
+            var BASE = (baseEl ? baseEl.getAttribute('href') : '/') || '/';
+            if (BASE.length > 1 && BASE.endsWith('/')) BASE = BASE.slice(0, -1);
+
             window.addEventListener('load', function () {
-                navigator.serviceWorker.register('/service-worker.js').catch(function (err) {
+                var swUrl = BASE + '/service-worker.js?v=2025-10-27.1';
+                navigator.serviceWorker.register(swUrl).then(function (reg) {
+                    reg.onupdatefound = function () {
+                        var sw = reg.installing;
+                        if (!sw) return;
+                        sw.onstatechange = function () {
+                            if (sw.state === 'installed' && navigator.serviceWorker.controller) {
+                                sw.postMessage({ type: 'SKIP_WAITING' });
+                            }
+                        };
+                    };
+                }).catch(function (err) {
                     console.warn('Service worker registration failed', err);
                 });
+            });
+
+            // Auto-reload when new SW takes control
+            var refreshing = false;
+            navigator.serviceWorker.addEventListener('controllerchange', function () {
+                if (refreshing) return;
+                refreshing = true;
+                location.reload();
             });
         })();
     </script>
 
-    <!-- Blazor bootstrap -->
+    <!-- Blazor -->
     <script src="_framework/blazor.webassembly.js" defer></script>
 </body>
 </html>

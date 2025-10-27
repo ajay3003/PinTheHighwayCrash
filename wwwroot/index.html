@@ -60,22 +60,35 @@
     <script src="js/cooldown.js?v=2025-10-27.1" defer></script>
 
     <!-- Admin / encryption modules -->
-    <script src="js/adminCrypto.js?v=2025-10-27.1" defer></script>
-    <script type="module" src="js/adminStore.js?v=2025-10-27.1"></script>
     <script src="js/download.js?v=2025-10-27.1"></script>
     <script src="js/fileHelpers.js?v=2025-10-27.1"></script>
 
+    <!-- Service worker registration -->
     <!-- Service worker registration -->
     <script>
         (function () {
             if (!('serviceWorker' in navigator)) return;
 
-            var swUrl = new URL('service-worker.js', document.baseURI).toString();
+            // Only register SW outside localhost to avoid dev caching issues
+            const isLocal =
+                location.hostname === 'localhost' ||
+                location.hostname === '127.0.0.1' ||
+                location.hostname === '::1';
+
+            if (isLocal) {
+                // If a SW is already registered, unregister it (useful when switching from prod build to dev)
+                navigator.serviceWorker.getRegistrations?.().then(regs => {
+                    regs.forEach(r => r.unregister());
+                });
+                return;
+            }
+
+            const swUrl = new URL('service-worker.js', document.baseURI).toString();
 
             window.addEventListener('load', function () {
                 navigator.serviceWorker.register(swUrl).then(function (reg) {
                     reg.onupdatefound = function () {
-                        var sw = reg.installing;
+                        const sw = reg.installing;
                         if (!sw) return;
                         sw.onstatechange = function () {
                             if (sw.state === 'installed' && navigator.serviceWorker.controller) {
@@ -88,7 +101,7 @@
                 });
             });
 
-            var refreshing = false;
+            let refreshing = false;
             navigator.serviceWorker.addEventListener('controllerchange', function () {
                 if (refreshing) return;
                 refreshing = true;
@@ -96,6 +109,7 @@
             });
         })();
     </script>
+
 
     <!-- Blazor WebAssembly bootstrap -->
     <script src="_framework/blazor.webassembly.js" defer></script>

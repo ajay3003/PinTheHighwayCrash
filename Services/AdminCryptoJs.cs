@@ -24,10 +24,13 @@ namespace PinTheHighwayCrash.Services
         {
             if (_module is null)
             {
-                _module = await _js.InvokeAsync<IJSObjectReference>("import", "./js/adminCrypto.js");
+                // Use absolute path + version to avoid SW/path caching issues
+                _module = await _js.InvokeAsync<IJSObjectReference>(
+                    "import", "/js/adminCrypto.js?v=2025-10-27.1");
             }
             return _module;
         }
+
 
         // ---------------------------------------------------------------------
         //  Proxy methods to module exports

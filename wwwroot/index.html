@@ -5,16 +5,15 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>PinTheHighwayCrash</title>
-
-    <!-- IMPORTANT: set to "/" or your GH Pages subpath like "/PinTheHighwayCrash/" -->
     <base href="/" />
 
-    <!-- Theme / PWA -->
+    <!-- PWA / Web App Capabilities -->
+    <link rel="manifest" href="manifest.webmanifest?v=2025-10-27.3" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <meta name="theme-color" content="#0d6efd" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <link rel="manifest" href="manifest.webmanifest?v=2025-10-27.1" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 
-    <!-- Preconnects -->
+    <!-- Preconnects for performance -->
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <link rel="preconnect" href="https://unpkg.com" crossorigin>
     <link rel="preconnect" href="https://a.tile.openstreetmap.org" crossorigin>
@@ -31,19 +30,9 @@
           rel="stylesheet"
           integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
           crossorigin="" />
-    <link href="css/app.css?v=2025-10-27.1" rel="stylesheet" />
-
-    <style>
-        #app {
-            min-height: 100vh;
-            display: grid;
-            place-items: center;
-            background: linear-gradient(180deg, #ffffff 0%, #f8f9fa 100%);
-            color: #495057;
-            font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-        }
-    </style>
+    <link href="css/app.css" rel="stylesheet" />
 </head>
+
 <body>
     <noscript>
         <div class="alert alert-danger m-3" role="alert">
@@ -75,13 +64,10 @@
         (function () {
             if (!('serviceWorker' in navigator)) return;
 
-            // Use <base href> to compute correct scope (works on GH Pages subpaths)
-            var baseEl = document.querySelector('base');
-            var BASE = (baseEl ? baseEl.getAttribute('href') : '/') || '/';
-            if (BASE.length > 1 && BASE.endsWith('/')) BASE = BASE.slice(0, -1);
+            // Build a same-origin, base-aware URL (works for "/" and "/SubPath/")
+            var swUrl = new URL('service-worker.js', document.baseURI).toString(); // ✅
 
             window.addEventListener('load', function () {
-                var swUrl = BASE + '/service-worker.js?v=2025-10-27.1';
                 navigator.serviceWorker.register(swUrl).then(function (reg) {
                     reg.onupdatefound = function () {
                         var sw = reg.installing;
@@ -97,7 +83,7 @@
                 });
             });
 
-            // Auto-reload when new SW takes control
+            // Auto-reload when the new SW takes control
             var refreshing = false;
             navigator.serviceWorker.addEventListener('controllerchange', function () {
                 if (refreshing) return;
@@ -106,6 +92,7 @@
             });
         })();
     </script>
+
 
     <!-- Blazor -->
     <script src="_framework/blazor.webassembly.js" defer></script>

@@ -2,52 +2,98 @@
 using System.Text.Json;
 using System.Threading.Tasks;
 
-public sealed class AdminCryptoJs : IAsyncDisposable
+namespace PinTheHighwayCrash.Services
 {
-    private readonly IJSRuntime _js;
-    private IJSObjectReference? _module;
-
-    public AdminCryptoJs(IJSRuntime js) => _js = js;
-
-    private async ValueTask<IJSObjectReference> Module()
+    /// <summary>
+    /// Provides async interop with adminCrypto.js (AES-GCM + PBKDF2).
+    /// 
+    /// Handles secure passphrase-derived key generation, key wrapping/unwrapping,
+    /// and JSON encryption/decryption using the Web Crypto API.
+    /// </summary>
+    public sealed class AdminCryptoJs : IAsyncDisposable
     {
-        if (_module is null)
+        private readonly IJSRuntime _js;
+        private IJSObjectReference? _module;
+
+        public AdminCryptoJs(IJSRuntime js) => _js = js;
+
+        /// <summary>
+        /// Lazy-loads the adminCrypto.js ES module.
+        /// </summary>
+        private async ValueTask<IJSObjectReference> Module()
         {
-            // Import the ES module
-            _module = await _js.InvokeAsync<IJSObjectReference>("import", "./js/adminCrypto.js");
+            if (_module is null)
+            {
+                _module = await _js.InvokeAsync<IJSObjectReference>("import", "./js/adminCrypto.js");
+            }
+            return _module;
         }
-        return _module;
-    }
 
-    // Proxy methods to the module's exports
+        // ---------------------------------------------------------------------
+        //  Proxy methods to module exports
+        // ---------------------------------------------------------------------
 
-    public async ValueTask<string> RandomB64(int len = 16)
-        => await (await Module()).InvokeAsync<string>("randomB64", len);
+        /// <summary>
+        /// Generates a cryptographically random Base64 string (default 16 bytes).
+        /// </summary>
+        public async ValueTask<string> RandomB64(int len = 16)
+            => await (await Module()).InvokeAsync<string>("randomB64", len);
 
-    public async ValueTask<IJSObjectReference> DeriveKek(string pass, string saltB64, int iterations)
-        => await (await Module()).InvokeAsync<IJSObjectReference>("deriveKEK", pass, saltB64, iterations);
+        /// <summary>
+        /// Derives a Key Encryption Key (KEK) from a passphrase and salt.
+        /// </summary>
+        public async ValueTask<IJSObjectReference> DeriveKek(string pass, string saltB64, int iterations)
+            => await (await Module()).InvokeAsync<IJSObjectReference>("deriveKEK", pass, saltB64, iterations);
 
-    public async ValueTask<IJSObjectReference> GenDataKey()
-        => await (await Module()).InvokeAsync<IJSObjectReference>("genDataKey");
+        /// <summary>
+        /// Generates a new AES-GCM data key.
+        /// </summary>
+        public async ValueTask<IJSObjectReference> GenDataKey()
+            => await (await Module()).InvokeAsync<IJSObjectReference>("genDataKey");
 
-    public async ValueTask<JsonElement> WrapKey(IJSObjectReference kek, IJSObjectReference dataKey)
-        => await (await Module()).InvokeAsync<JsonElement>("wrapKey", kek, dataKey);
+        /// <summary>
+        /// Wraps (encrypts) a data key using the KEK.
+        /// Returns a JSON object with iv + ciphertext fields.
+        /// </summary>
+        public async ValueTask<JsonElement> WrapKey(IJSObjectReference kek, IJSObjectReference dataKey)
+            => await (await Module()).InvokeAsync<JsonElement>("wrapKey", kek, dataKey);
 
-    public async ValueTask<IJSObjectReference> UnwrapKey(IJSObjectReference kek, object wrapped)
-        => await (await Module()).InvokeAsync<IJSObjectReference>("unwrapKey", kek, wrapped);
+        /// <summary>
+        /// Unwraps (decrypts) a wrapped key object back to a JS key reference.
+        /// </summary>
+        public async ValueTask<IJSObjectReference> UnwrapKey(IJSObjectReference kek, object wrapped)
+            => await (await Module()).InvokeAsync<IJSObjectReference>("unwrapKey", kek, wrapped);
 
-    public async ValueTask<JsonElement> EncryptJson(IJSObjectReference dataKey, object obj)
-        => await (await Module()).InvokeAsync<JsonElement>("encryptJson", dataKey, obj);
+        /// <summary>
+        /// Encrypts a .NET object into a JSON AES-GCM payload.
+        /// </summary>
+        public async ValueTask<JsonElement> EncryptJson(IJSObjectReference dataKey, object obj)
+            => await (await Module()).InvokeAsync<JsonElement>("encryptJson", dataKey, obj);
 
-    public async ValueTask<JsonElement> DecryptJson(IJSObjectReference dataKey, object payload)
-        => await (await Module()).InvokeAsync<JsonElement>("decryptJson", dataKey, payload);
+        /// <summary>
+        /// Decrypts a JSON AES-GCM payload back into an object.
+        /// </summary>
+        public async ValueTask<JsonElement> DecryptJson(IJSObjectReference dataKey, object payload)
+            => await (await Module()).InvokeAsync<JsonElement>("decryptJson", dataKey, payload);
 
-    public async ValueTask DisposeAsync()
-    {
-        if (_module is not null)
+        // ---------------------------------------------------------------------
+        //  Cleanup
+        // ---------------------------------------------------------------------
+
+        public async ValueTask DisposeAsync()
         {
-            try { await _module.DisposeAsync(); } catch { /* ignore */ }
-            _module = null;
+            if (_module is not null)
+            {
+                try
+                {
+                    await _module.DisposeAsync();
+                }
+                catch
+                {
+                    // safely ignore disposal errors (browser reload, etc.)
+                }
+                _module = null;
+            }
         }
     }
 }

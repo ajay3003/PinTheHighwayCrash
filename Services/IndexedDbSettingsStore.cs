@@ -1,6 +1,9 @@
 ﻿using System.Text.Json;
 using System.Threading.Tasks;
 
+
+namespace PinTheHighwayCrash.Services;
+
 public sealed class IndexedDbSettingsStore : ISettingsStore
 {
     private readonly AdminStoreJs _js;

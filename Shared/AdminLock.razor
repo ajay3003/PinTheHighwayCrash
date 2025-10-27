@@ -1,7 +1,8 @@
 ﻿@using Microsoft.AspNetCore.Components
 @using Microsoft.AspNetCore.Components.Forms
+@using PinTheHighwayCrash.Services
 
-@inject ISettingsStore Store
+@inject EncryptedSettingsStore EncStore
 @inject AdminCryptoJs Crypto
 
 @if (_enrolling)
@@ -55,7 +56,7 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        var has = await Store.HasAdminLockAsync();
+        var has = await EncStore.HasAdminLockAsync();
         _enrolling = !has;
         if (!has)
         {
@@ -95,7 +96,7 @@ else
 
         // Persist lock metadata (salt/iterations/wrapped key, reset fails)
         var wrappedJson = System.Text.Json.JsonSerializer.Serialize(wrapped);
-        await ((EncryptedSettingsStore)Store).SetAdminLockAsync(salt, wrappedJson, iterations);
+        await EncStore.SetAdminLockAsync(salt, wrappedJson, iterations);
 
         _enrolling = false;
         _status = null;
@@ -108,16 +109,14 @@ else
         _error = null;
         _status = null;
 
-        var info = await ((EncryptedSettingsStore)Store).GetAdminLockFullAsync();
+        var info = await EncStore.GetAdminLockFullAsync();
         if (info is null)
         {
             _error = "Admin lock is not initialized.";
             return;
         }
 
-        var (salt, wrapped, iters, fails, lastFailUtc) = info.Value;
-
-        if (await IsBackedOffAsync(fails, lastFailUtc))
+        if (await IsBackedOffAsync(info.Fails, info.LastFailUtc))
         {
             _lockedOut = true;
             return;
@@ -125,12 +124,13 @@ else
 
         try
         {
-            var kek = await Crypto.DeriveKek(_pass ?? string.Empty, salt, iters);
+            var kek = await Crypto.DeriveKek(_pass ?? string.Empty, info.SaltBase64, info.Iterations);
+            var wrapped = new { iv = info.WrapIv, wrapped = info.WrappedKey };
             var dataKey = await Crypto.UnwrapKey(kek, wrapped);
 
             // Success: store data key reference and clear fails
             DataKeyHolder.Ref = dataKey;
-            await ((EncryptedSettingsStore)Store).UpdateFailsAsync(0, null);
+            await EncStore.UpdateFailsAsync(0, null);
 
             _lockedOut = false;
             _error = null;
@@ -140,9 +140,9 @@ else
         catch
         {
             // Failed attempt: backoff
-            fails++;
+            var newFails = info.Fails + 1;
             var nowIso = DateTime.UtcNow.ToString("o");
-            await ((EncryptedSettingsStore)Store).UpdateFailsAsync(fails, nowIso);
+            await EncStore.UpdateFailsAsync(newFails, nowIso);
 
             _error = "Wrong passphrase.";
             await CheckBackoffAsync();
@@ -151,7 +151,7 @@ else
 
     private async Task CheckBackoffAsync()
     {
-        var info = await ((EncryptedSettingsStore)Store).GetAdminLockFullAsync();
+        var info = await EncStore.GetAdminLockFullAsync();
         if (info is null)
         {
             _lockedOut = false;
@@ -159,8 +159,7 @@ else
             return;
         }
 
-        var (_, _, _, fails, lastFailUtc) = info.Value;
-        _lockedOut = await IsBackedOffAsync(fails, lastFailUtc);
+        _lockedOut = await IsBackedOffAsync(info.Fails, info.LastFailUtc);
     }
 
     // Exponential backoff: 1s, 5s, 30s, 300s (max 5 min)

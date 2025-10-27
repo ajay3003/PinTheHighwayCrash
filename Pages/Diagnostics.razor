@@ -113,12 +113,28 @@ else
         <h5>JS / Interop Tests</h5>
 
         <div class="d-flex flex-wrap gap-2 mt-2">
-            <button class="btn btn-outline-primary" @onclick="CheckJsGlobals">Check JS globals</button>
-            <button class="btn btn-outline-success" @onclick="InitTestMap">Init test map</button>
-            <button class="btn btn-outline-secondary" @onclick="GeolocateNow">Geolocate now</button>
-            <button class="btn btn-outline-info" @onclick="ReverseGeocodeNow">Reverse-geocode (Nominatim)</button>
-            <button class="btn btn-outline-danger" @onclick="DisposeTestMap">Dispose test map</button>
+            <button class="btn btn-outline-primary" @onclick="CheckJsGlobals" title="Checks presence of L (Leaflet) and mapInterop.">Check JS globals</button>
+            <button class="btn btn-outline-success" @onclick="InitTestMap" title="Initializes a small Leaflet map below to verify rendering.">Init test map</button>
+            <button class="btn btn-outline-secondary" @onclick="GeolocateNow" title="Requests geolocation and centers the test map if successful.">Geolocate now</button>
+            <button class="btn btn-outline-info" @onclick="ReverseGeocodeNow" title="Calls your on-road verification flow with current pin position.">Reverse-geocode (Nominatim)</button>
+            <button class="btn btn-outline-danger" @onclick="DisposeTestMap" title="Disposes the test map and frees resources.">Dispose test map</button>
         </div>
+
+        <div class="mt-3 d-flex flex-wrap gap-2">
+            <button class="btn btn-outline-dark" @onclick="SelfTestEncryptedSettings"
+                    title="How to test: 1) /admin → unlock with passphrase, 2) save any setting, 3) come here and click this. It will verify the in-memory AES key and a crypto round-trip.">
+                🔐 Self-Test: Encrypted Settings
+            </button>
+            <button class="btn btn-outline-secondary" @onclick="ShowEncryptedStorage"
+                    title="Inspects localStorage and probes IndexedDB. Expect lock metadata and encrypted settings (iv + ciphertext).">
+                🗄️ Inspect Encrypted Storage
+            </button>
+        </div>
+
+        <p class="small text-muted mt-2">
+            Tip: After changing settings in <code>/admin</code>, refresh and unlock again to confirm persistence.
+            The encrypted payload should appear as <code>{ iv, ciphertext }</code> in storage (no plaintext fields).
+        </p>
 
         @if (!string.IsNullOrWhiteSpace(_diagLog))
         {
@@ -133,6 +149,10 @@ else
     private bool _loading = true;
     private HealthService.HealthReport? _health;
     private string _diagLog = "";
+
+    [Inject] private ISettingsStore EncStore { get; set; } = default!;
+    [Inject] private AdminCryptoJs Crypto { get; set; } = default!;
+    [Inject] private SettingsService Settings { get; set; } = default!;
 
     protected override async Task OnInitializedAsync()
     {
@@ -153,11 +173,9 @@ else
 
     private async Task<bool> HasGlobal(string name)
     {
-        // Prefer safe helper (no eval / CSP-friendly)
         try { return await JS.InvokeAsync<bool>("diagInterop.hasGlobal", name); }
         catch
         {
-            // Fallback (only if CSP allows)
             try { return await JS.InvokeAsync<bool>("eval", $"typeof window['{name}'] !== 'undefined'"); }
             catch { return false; }
         }
@@ -231,13 +249,11 @@ else
     {
         try
         {
-            // Use center of the current pin if available; else fallback
             var pin = await JS.InvokeAsync<object>("mapInterop.getPin");
             double lat = MapOpt.Value.FallbackLat, lng = MapOpt.Value.FallbackLng;
 
             if (pin is not null)
             {
-                // pin is a JS object {lat, lng}; extract via JSON stringify
                 var json = await JS.InvokeAsync<string>("JSON.stringify", pin);
                 var obj = System.Text.Json.JsonDocument.Parse(json).RootElement;
                 if (obj.TryGetProperty("lat", out var le)) lat = le.GetDouble();
@@ -250,6 +266,166 @@ else
         catch (Exception ex)
         {
             Append("ReverseGeocodeNow error: " + ex.Message);
+        }
+    }
+
+    // ======== NEW: Encrypted settings self-test ========
+
+    private async Task SelfTestEncryptedSettings()
+    {
+        try
+        {
+            Append("Running encrypted settings self-test...");
+
+            var lockInfo = await EncStore.GetAdminLockFullAsync();
+            if (lockInfo is null)
+            {
+                Append("❌ No admin lock found. Enroll first in /admin.");
+                return;
+            }
+
+            if (DataKeyHolder.Ref is null)
+            {
+                Append("❌ Not unlocked. Go to /admin and unlock, then run this test again.");
+                return;
+            }
+
+            var loaded = await Settings.LoadAsync();
+            if (loaded is null)
+            {
+                Append("ℹ️ No saved settings yet (that's OK). Save once in /admin, then re-run.");
+            }
+            else
+            {
+                Append("✅ Decrypted settings loaded via SettingsService.");
+            }
+
+            var probe = new { ok = true, ts = DateTime.UtcNow };
+            var encrypted = await Crypto.EncryptJson(DataKeyHolder.Ref, probe);
+            var decrypted = await Crypto.DecryptJson(DataKeyHolder.Ref, encrypted);
+
+            Append($"✅ Crypto round-trip passed @ {DateTime.UtcNow:HH:mm:ss}. Key is active.");
+        }
+        catch (Exception ex)
+        {
+            Append("❌ Self-test failed: " + ex.Message);
+        }
+    }
+
+    // ======== NEW: Storage inspection (localStorage + IndexedDB probe) ========
+
+    private async Task ShowEncryptedStorage()
+    {
+        try
+        {
+            Append("Inspecting encrypted storage...");
+
+            // localStorage (default in your current EncryptedSettingsStore)
+            var lockRaw = await JS.InvokeAsync<string?>("localStorage.getItem", "admin:lock");
+            Append(lockRaw is null
+                ? "Lock: not found in localStorage."
+                : $"Lock: present (length {lockRaw.Length} chars).");
+
+            var settingsRaw = await JS.InvokeAsync<string?>("localStorage.getItem", "admin:settings");
+            if (settingsRaw is null)
+            {
+                Append("Settings: not found in localStorage (may be using IndexedDB).");
+            }
+            else
+            {
+                Append($"Settings: present (ciphertext JSON length {settingsRaw.Length} chars).");
+                try
+                {
+                    using var doc = System.Text.Json.JsonDocument.Parse(settingsRaw);
+                    var root = doc.RootElement;
+                    bool hasIv = root.TryGetProperty("iv", out _);
+                    bool hasCt = root.TryGetProperty("ciphertext", out _);
+                    Append(hasIv && hasCt
+                        ? "Settings look encrypted (has iv + ciphertext)."
+                        : "⚠️ Settings payload does not look like encrypted JSON.");
+                }
+                catch
+                {
+                    Append("⚠️ Settings payload not valid JSON.");
+                }
+            }
+
+            // IndexedDB probe (completeness): uses eval; works in Chromium
+            var probe = await TryProbeIndexedDb();
+            Append(probe);
+            Append("Encrypted storage inspection done.");
+        }
+        catch (Exception ex)
+        {
+            Append("❌ Storage inspection failed: " + ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Tries to summarize IndexedDB state (databases + a few candidate DBs).
+    /// Uses indexedDB.databases() when available; otherwise attempts to open common names.
+    /// </summary>
+    private async Task<string> TryProbeIndexedDb()
+    {
+        try
+        {
+            // Prefer a helper if you have one; else fall back to eval
+            var script = @"
+                (async function(){
+                  if (!('indexedDB' in window)) return 'IndexedDB: not supported in this browser.';
+                  let lines = [];
+                  const supportsList = !!indexedDB.databases;
+                  if (supportsList) {
+                    try {
+                      const dbs = await indexedDB.databases();
+                      lines.push('IndexedDB databases(): ' + (dbs && dbs.length ? dbs.map(d=>d.name||'(unnamed)').join(', ') : 'none'));
+                    } catch(e) {
+                      lines.push('IndexedDB databases() call failed: ' + (e && e.message ? e.message : e));
+                    }
+                  } else {
+                    lines.push('IndexedDB databases(): not supported; trying to open known names...');
+                  }
+
+                  const candidates = ['PinTheHighwayCrash','pthc','settings','keyval-store','app-db'];
+                  const opened = [];
+                  for (const name of candidates) {
+                    try {
+                      const result = await new Promise((resolve)=>{
+                        const req = indexedDB.open(name);
+                        req.onupgradeneeded = ()=>{ try { req.result.close(); } catch{} };
+                        req.onsuccess = ()=>{ resolve({ ok: true, db: req.result, name }); };
+                        req.onerror = ()=>{ resolve({ ok: false, name }); };
+                      });
+                      if (result && result.ok && result.db) {
+                        const stores = Array.from(result.db.objectStoreNames||[]);
+                        try { result.db.close(); } catch {}
+                        opened.push(name + (stores.length ? ' (stores: ' + stores.join(', ') + ')' : ''));
+                      }
+                    } catch {}
+                  }
+
+                  if (opened.length) lines.push('Opened candidates: ' + opened.join('; '));
+                  else lines.push('Opened candidates: none');
+
+                  return lines.join('\\n');
+                })()
+            ";
+
+            string? summary;
+            try
+            {
+                summary = await JS.InvokeAsync<string>("eval", script);
+            }
+            catch
+            {
+                summary = "IndexedDB probe skipped (no eval allowed / CSP).";
+            }
+
+            return summary ?? "IndexedDB probe returned no summary.";
+        }
+        catch (Exception ex)
+        {
+            return "IndexedDB probe failed: " + ex.Message;
         }
     }
 

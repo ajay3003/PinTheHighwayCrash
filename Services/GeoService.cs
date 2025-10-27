@@ -1,3 +1,5 @@
+ï»¿// PinTheHighwayCrash/Services/GeoService.cs
+#nullable enable
 using System;
 using System.Text.Json;
 using System.Threading;
@@ -8,12 +10,8 @@ namespace PinTheHighwayCrash.Services
 {
     /// <summary>
     /// Geolocation wrapper for Blazor WebAssembly.
-    /// 
-    /// Supports:
-    ///  • window.geoHelpers.getPosition(options) — rich JS wrapper
-    ///  • navigator.geolocation.getCurrentPositionPromise(options) — legacy fallback
-    /// 
-    /// Provides structured results and graceful error mapping.
+    /// Tries geoHelpers.getPosition â†’ legacy promise polyfill â†’ maps errors clearly.
+    /// Includes retries and optional maximumAge allowance.
     /// </summary>
     public sealed class GeoService
     {
@@ -21,7 +19,6 @@ namespace PinTheHighwayCrash.Services
         public GeoService(IJSRuntime js) => _js = js;
 
         // ---------- Models ----------
-
         public record Position(double Latitude, double Longitude, double AccuracyMeters);
 
         public enum GeoErrorCode
@@ -43,76 +40,71 @@ namespace PinTheHighwayCrash.Services
             public static GeoResult Fail(GeoErrorCode code, string? msg) => new(null, code, msg);
         }
 
-        // ---------- Public API ----------
-
-        /// <summary>
-        /// Simpler helper that returns only the position or null.
-        /// </summary>
+        // ---------- Public API (simple) ----------
         public async Task<Position?> GetCurrentPositionAsync(
             int timeoutMs = 10000,
             bool highAccuracy = true,
+            int maximumAgeMs = 0,
             CancellationToken ct = default)
         {
-            var r = await TryGetCurrentPositionAsync(timeoutMs, highAccuracy, ct);
+            var r = await TryGetCurrentPositionAsync(timeoutMs, highAccuracy, maximumAgeMs, ct);
             return r.Position;
         }
 
-        /// <summary>
-        /// Gets the current location, returning full diagnostic info.
-        /// </summary>
+        // ---------- Public API (diagnostic, single attempt) ----------
         public async Task<GeoResult> TryGetCurrentPositionAsync(
             int timeoutMs = 30000,
             bool highAccuracy = true,
+            int maximumAgeMs = 0,
             CancellationToken ct = default)
         {
+            using var linked = LinkWithTimeout(ct, timeoutMs);
+            var token = linked.Token;
+
             try
             {
                 JsonElement result;
-
-                // --- Try modern helper first ---
                 try
                 {
                     result = await _js.InvokeAsync<JsonElement>(
                         "geoHelpers.getPosition",
-                        ct,
-                        new { enableHighAccuracy = highAccuracy, timeout = timeoutMs, maximumAge = 0 });
+                        token,
+                        new { enableHighAccuracy = highAccuracy, timeout = timeoutMs, maximumAge = maximumAgeMs });
                 }
                 catch (JSException)
                 {
-                    // --- Fallback to legacy promise-based API ---
                     result = await _js.InvokeAsync<JsonElement>(
                         "navigator.geolocation.getCurrentPositionPromise",
-                        ct,
-                        new { enableHighAccuracy = highAccuracy, timeout = timeoutMs, maximumAge = 0 });
+                        token,
+                        new { enableHighAccuracy = highAccuracy, timeout = timeoutMs, maximumAge = maximumAgeMs });
                 }
 
-                // --- Rich format: { ok: true, coords: { latitude, longitude, accuracy } } ---
                 if (result.ValueKind == JsonValueKind.Object &&
                     result.TryGetProperty("ok", out var okProp) &&
-                    okProp.ValueKind == JsonValueKind.True)
+                    okProp.ValueKind == JsonValueKind.True &&
+                    result.TryGetProperty("coords", out var c1) &&
+                    c1.ValueKind == JsonValueKind.Object)
                 {
-                    var c = result.GetProperty("coords");
-                    return GeoResult.Success(ReadCoords(c));
+                    return GeoResult.Success(ReadCoords(c1));
                 }
 
-                // --- Legacy format: { coords: { latitude, longitude, accuracy } } ---
                 if (result.ValueKind == JsonValueKind.Object &&
-                    result.TryGetProperty("coords", out var coordsEl) &&
-                    coordsEl.ValueKind == JsonValueKind.Object)
+                    result.TryGetProperty("coords", out var c2) &&
+                    c2.ValueKind == JsonValueKind.Object)
                 {
-                    return GeoResult.Success(ReadCoords(coordsEl));
+                    return GeoResult.Success(ReadCoords(c2));
                 }
 
                 return GeoResult.Fail(GeoErrorCode.NoCoords, "No coordinates returned from geolocation API.");
+            }
+            catch (OperationCanceledException oce)
+            {
+                return GeoResult.Fail(GeoErrorCode.Timeout, $"Cancelled or timed out: {oce.Message}");
             }
             catch (JSException jse)
             {
                 var (code, msg) = ParseError(jse.Message);
                 return GeoResult.Fail(code, msg);
-            }
-            catch (OperationCanceledException oce)
-            {
-                return GeoResult.Fail(GeoErrorCode.Timeout, $"Cancelled or timed out: {oce.Message}");
             }
             catch (Exception ex)
             {
@@ -120,8 +112,24 @@ namespace PinTheHighwayCrash.Services
             }
         }
 
-        // ---------- Helpers ----------
+        // ---------- Multi-strategy retry ----------
+        public async Task<GeoResult> TryGetCurrentPositionWithRetriesAsync(
+            int timeoutMs = 10000,
+            CancellationToken ct = default)
+        {
+            var first = await TryGetCurrentPositionAsync(timeoutMs: timeoutMs, highAccuracy: true, maximumAgeMs: 0, ct);
+            if (first.IsSuccess) return first;
 
+            var second = await TryGetCurrentPositionAsync(timeoutMs: Math.Max(15000, timeoutMs), highAccuracy: false, maximumAgeMs: 0, ct);
+            if (second.IsSuccess) return second;
+
+            var third = await TryGetCurrentPositionAsync(timeoutMs: Math.Max(15000, timeoutMs), highAccuracy: false, maximumAgeMs: 30_000, ct);
+            if (third.IsSuccess) return third;
+
+            return PickBestError(first, second, third);
+        }
+
+        // ---------- Helpers ----------
         private static Position ReadCoords(JsonElement coords)
         {
             var lat = coords.TryGetProperty("latitude", out var latEl) ? latEl.GetDouble() : 0d;
@@ -145,11 +153,10 @@ namespace PinTheHighwayCrash.Services
                     ? mEl.GetString()
                     : raw;
 
-                return (MapCode(codeText, raw), msgText ?? raw);
+                return (MapCode(codeText), msgText ?? raw);
             }
             catch
             {
-                // Fallback: infer from message text if JSON parse fails
                 var s = raw.ToLowerInvariant();
                 if (s.Contains("permission")) return (GeoErrorCode.PermissionDenied, raw);
                 if (s.Contains("unavailable")) return (GeoErrorCode.PositionUnavailable, raw);
@@ -159,38 +166,51 @@ namespace PinTheHighwayCrash.Services
             }
         }
 
-        private static GeoErrorCode MapCode(string? code, string rawFallback)
+        private static GeoErrorCode MapCode(string? code)
         {
-            if (string.IsNullOrWhiteSpace(code))
-                return GeoErrorCode.JsException;
-
-            var c = code.Trim().ToUpperInvariant();
-            return c switch
+            if (string.IsNullOrWhiteSpace(code)) return GeoErrorCode.JsException;
+            switch (code.Trim().ToUpperInvariant())
             {
-                "PERMISSION_DENIED" => GeoErrorCode.PermissionDenied,
-                "POSITION_UNAVAILABLE" => GeoErrorCode.PositionUnavailable,
-                "TIMEOUT" => GeoErrorCode.Timeout,
-                "UNSUPPORTED" => GeoErrorCode.Unsupported,
-                "NO_COORDS" => GeoErrorCode.NoCoords,
-                "JS_EXCEPTION" => GeoErrorCode.JsException,
-                "EXCEPTION" => GeoErrorCode.Exception,
-                _ => GuessCodeFromText(code)
-            };
+                case "PERMISSION_DENIED": return GeoErrorCode.PermissionDenied;
+                case "POSITION_UNAVAILABLE": return GeoErrorCode.PositionUnavailable;
+                case "TIMEOUT": return GeoErrorCode.Timeout;
+                case "UNSUPPORTED": return GeoErrorCode.Unsupported;
+                case "NO_COORDS": return GeoErrorCode.NoCoords;
+                case "JS_EXCEPTION": return GeoErrorCode.JsException;
+                case "EXCEPTION": return GeoErrorCode.Exception;
+                default:
+                    var s = code.ToLowerInvariant();
+                    if (s.Contains("permission")) return GeoErrorCode.PermissionDenied;
+                    if (s.Contains("unavailable")) return GeoErrorCode.PositionUnavailable;
+                    if (s.Contains("timeout")) return GeoErrorCode.Timeout;
+                    if (s.Contains("unsupported")) return GeoErrorCode.Unsupported;
+                    return GeoErrorCode.JsException;
+            }
         }
 
-        private static GeoErrorCode GuessCodeFromText(string text)
+        private static GeoResult PickBestError(params GeoResult[] results)
         {
-            var s = text.ToLowerInvariant();
-            if (s.Contains("permission")) return GeoErrorCode.PermissionDenied;
-            if (s.Contains("unavailable")) return GeoErrorCode.PositionUnavailable;
-            if (s.Contains("timeout")) return GeoErrorCode.Timeout;
-            if (s.Contains("unsupported")) return GeoErrorCode.Unsupported;
-            return GeoErrorCode.JsException;
+            foreach (var r in results)
+                if (r.ErrorCode == GeoErrorCode.PermissionDenied)
+                    return r;
+
+            foreach (var r in results)
+                if (!r.IsSuccess && !string.IsNullOrWhiteSpace(r.ErrorMessage))
+                    return r;
+
+            return GeoResult.Fail(GeoErrorCode.Exception, "Could not acquire location.");
         }
 
-        /// <summary>
-        /// Computes great-circle distance (in meters) between two coordinates using the Haversine formula.
-        /// </summary>
+        private static CancellationTokenSource LinkWithTimeout(CancellationToken ct, int timeoutMs)
+        {
+            if (timeoutMs <= 0)
+                return CancellationTokenSource.CreateLinkedTokenSource(ct);
+
+            var ctsTimeout = new CancellationTokenSource(timeoutMs);
+            return CancellationTokenSource.CreateLinkedTokenSource(ct, ctsTimeout.Token);
+        }
+
+        /// <summary>Great-circle distance in meters (Haversine).</summary>
         public static double HaversineMeters(double lat1, double lon1, double lat2, double lon2)
         {
             const double R = 6371000; // Earth radius (m)

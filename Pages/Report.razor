@@ -10,6 +10,7 @@
 @inject VerificationService Verify
 @inject IOptions<EmergencyOptions> EmergencyOpts
 @inject IOptions<GeoOptions> GeoOpts
+@inject IAntiSpamService AntiSpam
 @implements IDisposable
 
 <h1>Report Highway Crash (@_country)</h1>
@@ -332,7 +333,7 @@ else
         if (!m.Success) return false;
         if (!double.TryParse(m.Groups[1].Value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out lat)) return false;
         if (!double.TryParse(m.Groups[2].Value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out lng)) return false;
-        return lat is >= -90 and <= 90 && lng is >= -180 and <= 180;
+        return lat is >= -90 and <= 180 && lng is >= -180 and <= 180;
     }
 
     private static bool TryExtractLatLngFromCommonMapsLinks(string raw, out double lat, out double lng)
@@ -372,6 +373,7 @@ else
     }
 
     // -------------------------------------------------------------------------
+    // Actions with AntiSpam guard + record
 
     private async Task CallEmergency()
     {
@@ -380,7 +382,16 @@ else
             _submitMsg = "You must be on a verified road and near the pinned location.";
             return;
         }
+
+        var decision = await AntiSpam.GuardAsync("call", _pinLat, _pinLng);
+        if (!decision.Allowed)
+        {
+            _submitMsg = decision.Reason;
+            return;
+        }
+
         await JS.InvokeVoidAsync("shareInterop.openUrl", $"tel:{_phone}");
+        await AntiSpam.RecordAsync("call", _pinLat, _pinLng);
     }
 
     private async Task SendSms()
@@ -390,10 +401,20 @@ else
             _submitMsg = "You must be on a verified road and near the pinned location.";
             return;
         }
+
+        var decision = await AntiSpam.GuardAsync("sms", _pinLat, _pinLng);
+        if (!decision.Allowed)
+        {
+            _submitMsg = decision.Reason;
+            return;
+        }
+
         var body = Uri.EscapeDataString(BuildReportText());
         var url = $"sms:{_phone}?&body={body}";
         await JS.InvokeVoidAsync("shareInterop.openUrl", url);
         _submitMsg = $"Opened SMS app prefilled to {_phone}.";
+
+        await AntiSpam.RecordAsync("sms", _pinLat, _pinLng);
     }
 
     private static string NormalizeWhatsApp(string? raw)
@@ -418,6 +439,13 @@ else
             return;
         }
 
+        var decision = await AntiSpam.GuardAsync("whatsapp", _pinLat, _pinLng);
+        if (!decision.Allowed)
+        {
+            _submitMsg = decision.Reason;
+            return;
+        }
+
         var number = NormalizeWhatsApp(_whatsApp);
         if (string.IsNullOrWhiteSpace(number))
         {
@@ -429,6 +457,8 @@ else
         var url = $"https://wa.me/{number}?text={text}";
         await JS.InvokeVoidAsync("shareInterop.openUrl", url);
         _submitMsg = "Opened WhatsApp share.";
+
+        await AntiSpam.RecordAsync("whatsapp", _pinLat, _pinLng);
     }
 
     private async Task SendEmail()
@@ -438,11 +468,21 @@ else
             _submitMsg = "Email not configured.";
             return;
         }
+
+        var decision = await AntiSpam.GuardAsync("email", _pinLat, _pinLng);
+        if (!decision.Allowed)
+        {
+            _submitMsg = decision.Reason;
+            return;
+        }
+
         var subject = Uri.EscapeDataString("EMERGENCY: Highway accident");
         var body = Uri.EscapeDataString(BuildReportText());
         var url = $"mailto:{_email}?subject={subject}&body={body}";
         await JS.InvokeVoidAsync("shareInterop.openUrl", url);
         _submitMsg = $"Opened email composer to {_email}.";
+
+        await AntiSpam.RecordAsync("email", _pinLat, _pinLng);
     }
 
     private async Task CopyReport()

@@ -1,4 +1,4 @@
-﻿// Program.cs
+﻿// PinTheHighwayCrash/Program.cs
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Microsoft.Extensions.Logging;
@@ -26,8 +26,9 @@ builder.Services.Configure<GeoOptions>(cfg => builder.Configuration.GetSection("
 builder.Services.Configure<LoggingOptions>(cfg => builder.Configuration.GetSection("Logging").Bind(cfg));
 builder.Services.Configure<FeatureFlags>(cfg => builder.Configuration.GetSection("FeatureFlags").Bind(cfg));
 builder.Services.Configure<CooldownOptions>(builder.Configuration.GetSection("Cooldown"));
-// Bind Offline/PWA options (present in Models/OfflineOptions.cs)
 builder.Services.Configure<OfflineOptions>(cfg => builder.Configuration.GetSection("Offline").Bind(cfg));
+// Anti-spam options
+builder.Services.Configure<AntiSpamOptions>(builder.Configuration.GetSection("AntiSpam"));
 
 // ---------------- App Services ----------------
 builder.Services.AddScoped<GeoService>();
@@ -35,6 +36,7 @@ builder.Services.AddScoped<ICooldownService, CooldownService>();
 builder.Services.AddScoped<CooldownJs>();
 builder.Services.AddScoped<HealthService>();
 builder.Services.AddScoped<VerificationService>(); // on-road + forward geocode
+builder.Services.AddScoped<IAntiSpamService, AntiSpamService>(); // anti-spam guard
 
 // ---------------- Logging ----------------
 var min = builder.Configuration["Logging:LogLevel:Default"];

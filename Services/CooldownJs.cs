@@ -4,7 +4,8 @@ using Microsoft.JSInterop;
 namespace PinTheHighwayCrash.Services
 {
     /// <summary>
-    /// JS interop bridge for cooldown persistence via js/cooldown.js.
+    /// JS interop bridge for cooldown and anti-spam persistence.
+    /// Wraps calls to js/cooldown.js.
     /// </summary>
     public sealed class CooldownJs
     {
@@ -38,5 +39,12 @@ namespace PinTheHighwayCrash.Services
         /// </summary>
         public ValueTask Remove(bool useLocal, string key)
             => _js.InvokeVoidAsync("pthc.cooldown.remove", useLocal, key);
+
+        /// <summary>
+        /// Removes all entries that start with the given prefix.
+        /// Requires a helper function in js/cooldown.js.
+        /// </summary>
+        public ValueTask RemoveAllWithPrefix(bool useLocal, string prefix)
+            => _js.InvokeVoidAsync("pthc.cooldown.removeAllWithPrefix", useLocal, prefix);
     }
 }

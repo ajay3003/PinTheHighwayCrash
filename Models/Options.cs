@@ -108,6 +108,7 @@ namespace PinTheHighwayCrash.Models
         public int DefaultDurationSeconds { get; set; } = 120;
 
         [Required] public PerActionCooldowns PerAction { get; set; } = new();
+
         /// <summary>
         /// Small window to allow rapid double-taps without starting a full cooldown.
         /// </summary>
@@ -124,38 +125,27 @@ namespace PinTheHighwayCrash.Models
         {
             [Range(0, int.MaxValue)]
             public int CallSeconds { get; set; } = 120;
-
             [Range(0, int.MaxValue)]
             public int SmsSeconds { get; set; } = 90;
-
             [Range(0, int.MaxValue)]
             public int WhatsAppSeconds { get; set; } = 90;
-
             [Range(0, int.MaxValue)]
             public int EmailSeconds { get; set; } = 60;
         }
 
         public sealed class PersistOptions
         {
-            /// <summary>
-            /// Use localStorage (true) or sessionStorage (false).
-            /// </summary>
+            /// <summary>Use localStorage (true) or sessionStorage (false).</summary>
             public bool UseLocalStorage { get; set; } = true;
 
-            /// <summary>
-            /// Key prefix for storage entries.
-            /// </summary>
+            /// <summary>Key prefix for storage entries.</summary>
             [Required] public string KeyPrefix { get; set; } = "pthc_cd_";
 
-            /// <summary>
-            /// Keep cooldown state across reloads for this many minutes.
-            /// </summary>
+            /// <summary>Keep cooldown state across reloads for this many minutes.</summary>
             [Range(0, int.MaxValue)]
             public int PersistAcrossReloadMinutes { get; set; } = 120;
 
-            /// <summary>
-            /// Cleanup keys immediately when cooldown expires.
-            /// </summary>
+            /// <summary>Cleanup keys immediately when cooldown expires.</summary>
             public bool CleanupOnExpire { get; set; } = true;
         }
 
@@ -163,49 +153,35 @@ namespace PinTheHighwayCrash.Models
         {
             public bool ShowCountdown { get; set; } = true;
 
-            /// <summary>
-            /// Allowed values: "mm:ss" or "ss".
-            /// </summary>
+            /// <summary>Allowed values: "mm:ss" or "ss".</summary>
             [Required] public string CountdownFormat { get; set; } = "mm:ss";
 
-            /// <summary>
-            /// When remaining time &lt;= threshold, UI may highlight (e.g., amber/red).
-            /// </summary>
+            /// <summary>When remaining time &lt;= threshold, UI may highlight.</summary>
             [Range(0, int.MaxValue)]
             public int WarnThresholdSeconds { get; set; } = 10;
 
             public bool ShowBadge { get; set; } = true;
 
-            /// <summary>
-            /// Template can contain {remaining}.
-            /// </summary>
+            /// <summary>Template can contain {remaining}.</summary>
             [Required] public string BadgeText { get; set; } = "Cooldown: {remaining}";
 
             public bool DisableButtonsDuringCooldown { get; set; } = true;
 
-            /// <summary>
-            /// Template can contain {remaining}.
-            /// </summary>
+            /// <summary>Template can contain {remaining}.</summary>
             [Required] public string DisabledButtonTextTemplate { get; set; } = "Wait {remaining}";
 
-            /// <summary>
-            /// Tooltip shown on disabled controls; can contain {remaining}.
-            /// </summary>
+            /// <summary>Tooltip shown on disabled controls; can contain {remaining}.</summary>
             [Required] public string TooltipTemplate { get; set; } = "Please wait {remaining} before trying again";
 
             public bool ToastOnAttemptDuringCooldown { get; set; } = true;
 
-            /// <summary>
-            /// Toast content when user attempts action during cooldown; can contain {remaining}.
-            /// </summary>
+            /// <summary>Toast content when user attempts action during cooldown; can contain {remaining}.</summary>
             [Required] public string ToastMessageTemplate { get; set; } = "Action on cooldown. Try again in {remaining}.";
         }
 
         public sealed class TestModeOptions
         {
-            /// <summary>
-            /// If enabled, all actions use OverrideAllActionsSeconds for faster testing.
-            /// </summary>
+            /// <summary>If enabled, all actions use OverrideAllActionsSeconds for faster testing.</summary>
             public bool Enabled { get; set; } = false;
 
             [Range(0, int.MaxValue)]
@@ -214,23 +190,69 @@ namespace PinTheHighwayCrash.Models
 
         public sealed class DebugOptions
         {
-            /// <summary>
-            /// If the Debug panel is visible, bypass cooldowns (useful in dev).
-            /// </summary>
+            /// <summary>If the Debug panel is visible, bypass cooldowns (useful in dev).</summary>
             public bool BypassWhenShowDebugPanel { get; set; } = false;
 
-            /// <summary>
-            /// Emit detailed state transition logs to console.
-            /// </summary>
+            /// <summary>Emit detailed state transition logs to console.</summary>
             public bool LogTransitions { get; set; } = true;
         }
 
         public sealed class ClockOptions
         {
-            /// <summary>
-            /// "Browser" for Date.now(); "Server" if you provide a server time source.
-            /// </summary>
+            /// <summary>"Browser" for Date.now(); "Server" if you provide a server time source.</summary>
             [Required] public string NowSource { get; set; } = "Browser";
+        }
+    }
+
+    /// <summary>
+    /// Lightweight client-side anti-spam options (pairs with AntiSpamService).
+    /// </summary>
+    public sealed class AntiSpamOptions
+    {
+        public bool Enabled { get; set; } = true;
+
+        /// <summary>Minutes to block repeat reports from the same ~cell.</summary>
+        [Range(0, int.MaxValue)]
+        public int DuplicateWindowMinutes { get; set; } = 10;
+
+        /// <summary>Approximate cell size in meters used for duplicate detection.</summary>
+        [Range(1, 500)]
+        public int CellSizeMeters { get; set; } = 30;
+
+        /// <summary>Lock out other channels for N seconds after any action fires.</summary>
+        [Range(0, int.MaxValue)]
+        public int PostActionLockoutSeconds { get; set; } = 60;
+
+        /// <summary>Daily caps per action. 0 = unlimited.</summary>
+        [Required] public Caps DailyCaps { get; set; } = new();
+
+        /// <summary>Storage behavior.</summary>
+        [Required] public StorageCfg Storage { get; set; } = new();
+
+        public sealed class Caps
+        {
+            [Range(0, int.MaxValue)] public int Call { get; set; } = 3;
+            [Range(0, int.MaxValue)] public int Sms { get; set; } = 3;
+            [Range(0, int.MaxValue)] public int WhatsApp { get; set; } = 3;
+            [Range(0, int.MaxValue)] public int Email { get; set; } = 3;
+
+            public int ForAction(string action) => action.ToLowerInvariant() switch
+            {
+                "call" => Call,
+                "sms" => Sms,
+                "whatsapp" => WhatsApp,
+                "email" => Email,
+                _ => 0
+            };
+        }
+
+        public sealed class StorageCfg
+        {
+            /// <summary>Use localStorage (true) or sessionStorage (false).</summary>
+            public bool UseLocalStorage { get; set; } = true;
+
+            /// <summary>Key prefix for storage entries.</summary>
+            [Required] public string KeyPrefix { get; set; } = "pthc_as_";
         }
     }
 

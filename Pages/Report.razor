@@ -488,7 +488,7 @@ else
         return sb.ToString();
     }
 
-    private async Task SendWhatsApp()
+    async Task SendWhatsApp()
     {
         if (!_enableWhatsApp || string.IsNullOrWhiteSpace(_whatsApp))
         {
@@ -504,19 +504,16 @@ else
         var decision = await AntiSpam.GuardAsync("whatsapp", _pinLat, _pinLng);
         if (!decision.Allowed)
         {
-            _submitMsg = decision.Reason;
+            _submitMsg = decision.Reason ?? "Action temporarily blocked.";
             return;
         }
 
-        var number = NormalizeWhatsApp(_whatsApp);
-        if (string.IsNullOrWhiteSpace(number))
-        {
-            _submitMsg = "WhatsApp number is invalid.";
-            return;
-        }
+        // ✅ NEW: sanitize number for wa.me (digits only)
+        var digitsOnly = new string((_whatsApp ?? string.Empty).Where(char.IsDigit).ToArray());
 
         var text = Uri.EscapeDataString(BuildReportText());
-        var url = $"https://wa.me/{number}?text={text}";
+        var url = $"https://wa.me/{digitsOnly}?text={text}";
+
         await JS.InvokeVoidAsync("shareInterop.openUrl", url);
         _submitMsg = "Opened WhatsApp share.";
 

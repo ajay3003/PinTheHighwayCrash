@@ -145,15 +145,18 @@ else
             }
         }
 
-        @* --- WHATSAPP --- *@
+        @* --- WHATSAPP (Universal direct link) --- *@
         @if (_enableWhatsApp)
         {
             if (CanSend)
             {
-                <CooldownButton ActionKey="whatsapp"
-                                Css="btn btn-success w-100 btn-lg fw-bold"
-                                Text="💬 WhatsApp"
-                                OnClick="SendWhatsApp" />
+                <a href="@GetWhatsAppUrl()"
+                   class="btn btn-success w-100 btn-lg fw-bold"
+                   target="_blank"
+                   rel="noopener noreferrer"
+                   @onclick="RecordWhatsAppClick">
+                    💬 WhatsApp
+                </a>
             }
             else
             {
@@ -257,8 +260,6 @@ else
                 _enableEmail = s.Channels.Email;
                 _enableWhatsApp = s.Channels.WhatsApp;
             }
-            // NOTE: Phone/email targets remain from appsettings. If you later add admin-side targets,
-            // map them here similarly.
         }
 
         return Task.CompletedTask;
@@ -479,22 +480,17 @@ else
         await AntiSpam.RecordAsync("sms", _pinLat, _pinLng);
     }
 
-    private static string NormalizeWhatsApp(string? raw)
+    // ✅ UNIVERSAL WHATSApp (always a direct anchor)
+    private string GetWhatsAppUrl()
     {
-        if (string.IsNullOrWhiteSpace(raw)) return string.Empty;
-        var sb = new System.Text.StringBuilder(raw.Length);
-        foreach (var ch in raw)
-            if (char.IsDigit(ch)) sb.Append(ch);
-        return sb.ToString();
+        if (string.IsNullOrWhiteSpace(_whatsApp)) return "#";
+        var digitsOnly = new string((_whatsApp ?? string.Empty).Where(char.IsDigit).ToArray());
+        var text = Uri.EscapeDataString(BuildReportText());
+        return $"https://wa.me/{digitsOnly}?text={text}";
     }
 
-    async Task SendWhatsApp()
+    private async Task RecordWhatsAppClick()
     {
-        if (!_enableWhatsApp || string.IsNullOrWhiteSpace(_whatsApp))
-        {
-            _submitMsg = "WhatsApp not configured.";
-            return;
-        }
         if (!CanSend)
         {
             _submitMsg = "You must be on a verified road and near the pinned location.";
@@ -508,15 +504,7 @@ else
             return;
         }
 
-        // ✅ NEW: sanitize number for wa.me (digits only)
-        var digitsOnly = new string((_whatsApp ?? string.Empty).Where(char.IsDigit).ToArray());
-
-        var text = Uri.EscapeDataString(BuildReportText());
-        var url = $"https://wa.me/{digitsOnly}?text={text}";
-
-        await JS.InvokeVoidAsync("shareInterop.openUrl", url);
         _submitMsg = "Opened WhatsApp share.";
-
         await AntiSpam.RecordAsync("whatsapp", _pinLat, _pinLng);
     }
 
@@ -607,7 +595,7 @@ else
         var tmpl = Settings.Current?.Templates;
         if (tmpl is null) return defaultText;
 
-        // Prefer Admin SMS template for short shares (works fine for email too)
+        // Prefer Admin SMS template for short shares (works for email too)
         var template = !string.IsNullOrWhiteSpace(tmpl.Sms) ? tmpl.Sms : defaultText;
 
         var composed = template
